@@ -97,6 +97,22 @@
 .hero-cast .cast-mon.lead { z-index: 2; }
 .hero-cast .trainer-av { align-self: flex-end; font-size: 5.5rem; margin-bottom: 0.5rem; filter: drop-shadow(0 7px 5px rgba(0,0,0,.6)); }
 @keyframes idle-bob-hub { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+/* lit stage platform the team stands on */
+.hero-platform {
+  position: absolute; left: 50%; bottom: 5%; transform: translateX(-50%); z-index: 0;
+  width: 64%; height: 13%;
+  background: radial-gradient(ellipse at center, rgba(130,160,255,.4) 0 38%, rgba(60,80,150,.18) 64%, transparent 80%);
+  border-radius: 50%; filter: blur(1px);
+}
+/* interactive cast — tap to feature / poke */
+.hero-cast .cast-mon { cursor: pointer; }
+.hero-cast .cast-mon:hover .art { filter: drop-shadow(0 9px 7px rgba(0,0,0,.6)) brightness(1.14); }
+.hero-cast .cast-mon.poke { animation: cast-poke 0.42s ease-out; }
+@keyframes cast-poke { 30% { transform: translateY(-16px); } 65% { transform: translateY(0); } }
+/* roster thumbnails select which teammate is featured */
+.roster-slot { background: none; border: 2px solid transparent; padding: 2px; cursor: pointer; line-height: 0; }
+.roster-slot:hover { border-color: var(--neon); }
+.roster-slot.on { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(255,205,117,.4); }
 
 .hero-say {
   position: absolute; left: 1.2rem; bottom: 1rem; z-index: 3; max-width: 23rem;

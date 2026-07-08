@@ -75,7 +75,38 @@ export const hubScene = {
       { glyph: NPCS.cordy.glyph, left: '78%' },
       { glyph: NPCS.kitt.glyph, left: '64%' },
     ];
-    const leadMon = team[0];
+    // Interactive lobby cast: the team stands on the platform; tap any teammate
+    // (on stage or in the roster) to feature it centre-stage, or poke the lead.
+    let featured = 0;
+    const castWrap = el('div.hero-cast');
+    const rosterSlots = el('div.slots');
+    function castMon(m, i, cls) {
+      const node = el('div.cast-mon.' + cls, {
+        title: `${m.species} — tap to feature`,
+        onclick: () => {
+          sfx.confirm();
+          node.classList.remove('poke'); void node.offsetWidth; node.classList.add('poke');
+          if (i !== featured) feature(i);
+        },
+      }, monToken(m.species, { size: cls === 'lead' ? '11rem' : '7rem', animated: true }));
+      return node;
+    }
+    function renderCast() {
+      // whole team lined up on the platform; the featured one is enlarged
+      clear(castWrap).append(
+        ...team.map((m, i) => castMon(m, i, i === featured ? 'lead' : 'side')),
+      );
+    }
+    function renderRoster() {
+      clear(rosterSlots).append(
+        ...team.map((m, i) => el('button.roster-slot' + (i === featured ? '.on' : ''), {
+          title: `Feature ${m.species}`, onclick: () => { sfx.click(); feature(i); },
+        }, monToken(m.species, { size: '2.9rem', animated: true }))),
+        ...Array.from({ length: Math.max(0, 6 - team.length) }, () => el('div.slot-empty', { style: { width: '2.9rem', height: '2.9rem' } }, '+')),
+      );
+    }
+    function feature(i) { featured = i; renderCast(); renderRoster(); }
+    if (team.length) { renderCast(); renderRoster(); }
 
     root.append(
       topbar(`Frontier City — ${S.trainer.name}'s Gym`, {
@@ -97,28 +128,21 @@ export const hubScene = {
             el('div.gauge', {}, el('i', { style: { width: `${r.pts}%` } })),
             el('small.dim', {}, `${r.pts}/${r.gauge} to next${S.streak > 1 ? `  ·  🔥 ${S.streak}` : ''}`),
           ),
-          // featured lead centre-stage, two teammates flanking, trainer beside
-          el('div.hero-cast', {},
-            team[1] ? el('div.cast-mon.side', {}, monToken(team[1].species, { size: '8rem', animated: true })) : null,
-            el('span.trainer-av', {}, '🧑‍💼'),
-            team[0] ? el('div.cast-mon.lead', {}, monToken(team[0].species, { size: '15rem', animated: true })) : null,
-            team[2] ? el('div.cast-mon.side', {}, monToken(team[2].species, { size: '8rem', animated: true })) : null,
-          ),
+          // the team stands here on a lit platform; tap to feature (interactive)
+          el('div.hero-platform'),
+          castWrap,
           // NPC speech bubble — bottom-left
           el('div.hero-say', {},
             el('span.who', {}, `${NPCS[npcKey].glyph} ${NPCS[npcKey].name}`),
             el('div', {}, npcLine),
           ),
-          // team roster — bottom-right overlay
+          // team roster — bottom-right overlay (tap to feature, Edit → box)
           el('div.hero-team', {},
             el('div.row', { style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' } },
-              el('small.dim', {}, 'TEAM'),
-              el('button.btn.small', { onclick: () => go('box') }, 'Edit'),
+              el('small.dim', {}, 'TEAM · tap to feature'),
+              el('button.btn.small', { onclick: () => { sfx.confirm(); go('box'); } }, '✎ Edit'),
             ),
-            el('div.slots', {},
-              ...team.map(m => monToken(m.species, { size: '2.9rem', animated: true })),
-              ...Array.from({ length: Math.max(0, 6 - team.length) }, () => el('div.slot-empty', { style: { width: '2.9rem', height: '2.9rem' } }, '+')),
-            ),
+            rosterSlots,
           ),
         ),
         hint,

@@ -56,6 +56,18 @@ export const battleScene = {
     let sceneIdx = Math.floor(Math.random() * BATTLE_SCENES.length);
     const applyScene = () => arena.style.setProperty('--bg', `url("${showdownBg(BATTLE_SCENES[sceneIdx])}")`);
     applyScene();
+    // auto-battle: when on, the AI picks the player's moves/switches
+    let autoBattle = false, autoResolve = null, autoTimer = null;
+    const autoBtn = el('button.top-btn.auto', {
+      title: 'Auto-battle — let the AI pick your moves',
+      onclick: () => {
+        autoBattle = !autoBattle;
+        autoBtn.classList.toggle('on', autoBattle);
+        autoBtn.textContent = autoBattle ? '⏸ AUTO' : '▶▶ AUTO';
+        sfx.click(); toast(`Auto-battle ${autoBattle ? 'ON' : 'OFF'}`);
+        if (autoBattle && autoResolve) autoResolve();   // kick the current turn
+      },
+    }, '▶▶ AUTO');
     const sceneBtn = el('button.top-btn', {
       title: 'Change background',
       onclick: () => { sceneIdx = (sceneIdx + 1) % BATTLE_SCENES.length; applyScene(); sfx.click(); },
@@ -67,7 +79,7 @@ export const battleScene = {
         if (confirm('Leave the battle and return to the gym?')) { scene.cleanup(); go('hub'); }
       },
     }, '✕ Quit');
-    const topCtl = el('div.topctl', {}, quitBtn, sceneBtn);
+    const topCtl = el('div.topctl', {}, autoBtn, quitBtn, sceneBtn);
     const stage = el('div.battle-stage', {},
       arena,
       el('canvas', { id: 'fx-canvas' }),
@@ -91,7 +103,7 @@ export const battleScene = {
 
     let timerId = null;
     let rotieNode = null;
-    scene.cleanup = () => { clearInterval(timerId); weatherStop(); setTimeScale(1); detachFx(); };
+    scene.cleanup = () => { clearInterval(timerId); clearTimeout(autoTimer); weatherStop(); setTimeScale(1); detachFx(); };
 
     // ---------- render helpers ----------
     const spotOf = (mon) => (mon.side.idx === 0 ? allySpot : foeSpot);
@@ -353,6 +365,7 @@ export const battleScene = {
 
     B.getSwitch = async (sideIdx, forced) => {
       if (sideIdx === 1) return chooseSwitch(B, 1);
+      if (autoBattle) return chooseSwitch(B, 0);
       return await promptSwitch(forced);
     };
 
@@ -478,9 +491,14 @@ export const battleScene = {
           if (resolved) return;
           resolved = true;
           clearInterval(timerId);
+          clearTimeout(autoTimer); autoResolve = null;
           resolve(action);
         }
         done.rearm = () => { promptAction().then(r => done(r)); };
+
+        // auto-battle: let the AI choose this turn (short beat so it's watchable)
+        autoResolve = () => { if (!resolved) done(chooseAction(B, 0)); };
+        if (autoBattle) autoTimer = setTimeout(autoResolve, 750);
       });
 
       function chance08() { return Math.random() < 0.65; }

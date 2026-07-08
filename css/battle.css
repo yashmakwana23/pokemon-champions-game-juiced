@@ -229,6 +229,8 @@
 .top-btn:hover { filter: brightness(1.2); }
 .top-btn:active { transform: translate(2px, 2px); box-shadow: none; }
 .top-btn.quit { border-color: var(--danger); color: var(--danger); font-family: var(--font-head); font-size: 0.5rem; }
+.top-btn.auto { border-color: var(--neon); color: var(--neon); font-family: var(--font-head); font-size: 0.5rem; }
+.top-btn.auto.on { background: var(--neon); color: #06232b; animation: megapulse 1s steps(2) infinite; }
 
 /* action row (timer / mega / switch / forfeit) sits under the move grid */
 .side-actions { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
