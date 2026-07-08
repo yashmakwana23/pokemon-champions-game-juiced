@@ -51,7 +51,7 @@ export const ranchScene = {
           const price = recruitPrice(spName);
           const full = S.box.length >= boxCapacity();
           return el('div.recruit-card.panel', {},
-            monToken(spName, { size: '5.2rem' }),
+            monToken(spName, { size: '8rem', animated: true }),
             el('div.nm', {}, spName),
             el('div.row', {}, ...sp.types.map(typeBadge)),
             el('small.dim', {}, `${sp.tier} · BST ${Object.values(sp.stats).reduce((a, b) => a + b, 0)}`),

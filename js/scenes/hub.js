@@ -6,6 +6,7 @@ import { go } from '../engine/scenes.js';
 import { state, save, teamMons, boxCapacity, sweepTrials } from '../state/store.js';
 import { rankInfo, ensureDailies, STARTER_MISSIONS } from '../state/progression.js';
 import { NPCS, DIALOGUE } from '../data/trainers.js';
+import { showdownBg } from '../data/sprites.js';
 import { monToken, toast, topbar, playDialogue } from '../ui/widgets.js';
 import { sfx, setAudioEnabled } from '../engine/audio.js';
 import { pick } from '../engine/rng.js';
@@ -45,14 +46,13 @@ export const hubScene = {
 
     let sel = 0;
     const hint = el('div.cmd-hint', {}, CMDS[0].d);
-    const items = CMDS.map((c, i) => el('button.cmd-item', {
+    const items = CMDS.map((c, i) => el('button.nav-btn' + (i === 0 ? '.primary' : ''), {
       onclick: () => { sfx.confirm(); go(c.to); },
       onmouseenter: () => setSel(i),
     },
-      el('span.cursor', {}, '▶'),
       el('span.ic', {}, c.ic),
-      el('span', {}, c.t),
-      c.badge ? el('span.badge', {}, `${c.badge} NEW`) : null,
+      el('span.lbl', {}, c.t),
+      c.badge ? el('span.badge', {}, `${c.badge}`) : null,
     ));
     const setSel = (i) => {
       sel = (i + CMDS.length) % CMDS.length;
@@ -88,43 +88,41 @@ export const hubScene = {
           }, S.settings.sound ? '🔊' : '🔇'),
         ],
       }),
-      el('div.hub', {},
-        el('div.hub-scene', {},
+      el('div.hub', { style: { '--bg': `url("${showdownBg('city')}")` } },
+        el('div.hub-hero', {},
           el('div.gym-sign', {}, '★ FRONTIER CITY GYM ★'),
-          ...sceneNpcs.map(n => el('span.npc', { style: { left: n.left } }, n.glyph)),
-          leadMon ? el('div.mon-walk', { style: { left: '34%' } }, monToken(leadMon.species, { size: '4.5rem' })) : null,
-        ),
-        el('div.hub-body', {},
-          el('div.cmd-menu.panel', {}, ...items, hint),
-          el('div.hub-side', {},
-            el('div.rank-card.panel', {},
-              el('h3', {}, 'Ranked ladder'),
-              el('div.tiername', {}, r.label),
-              el('div.gauge', { style: { marginTop: '0.5rem' } }, el('i', { style: { width: `${r.pts}%` } })),
-              el('div.row', { style: { justifyContent: 'space-between', marginTop: '0.3rem' } },
-                el('small.dim', {}, `${r.pts} / ${r.gauge} to next rank`),
-                el('small.gold', {}, S.streak > 1 ? `🔥 ${S.streak} streak` : ''),
-              ),
+          // rank badge — top-left overlay
+          el('div.rank-badge', {},
+            el('div.tier', {}, `🏆 ${r.label}`),
+            el('div.gauge', {}, el('i', { style: { width: `${r.pts}%` } })),
+            el('small.dim', {}, `${r.pts}/${r.gauge} to next${S.streak > 1 ? `  ·  🔥 ${S.streak}` : ''}`),
+          ),
+          // featured lead centre-stage, two teammates flanking, trainer beside
+          el('div.hero-cast', {},
+            team[1] ? el('div.cast-mon.side', {}, monToken(team[1].species, { size: '8rem', animated: true })) : null,
+            el('span.trainer-av', {}, '🧑‍💼'),
+            team[0] ? el('div.cast-mon.lead', {}, monToken(team[0].species, { size: '15rem', animated: true })) : null,
+            team[2] ? el('div.cast-mon.side', {}, monToken(team[2].species, { size: '8rem', animated: true })) : null,
+          ),
+          // NPC speech bubble — bottom-left
+          el('div.hero-say', {},
+            el('span.who', {}, `${NPCS[npcKey].glyph} ${NPCS[npcKey].name}`),
+            el('div', {}, npcLine),
+          ),
+          // team roster — bottom-right overlay
+          el('div.hero-team', {},
+            el('div.row', { style: { justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' } },
+              el('small.dim', {}, 'TEAM'),
+              el('button.btn.small', { onclick: () => go('box') }, 'Edit'),
             ),
-            el('div.team-strip.panel', {},
-              el('div.row', { style: { justifyContent: 'space-between' } },
-                el('h3', {}, 'Battle team'),
-                el('button.btn.small', { onclick: () => go('box') }, 'Edit'),
-              ),
-              el('div.slots', {},
-                ...team.map(m => monToken(m.species, { size: '3rem' })),
-                ...Array.from({ length: Math.max(0, 6 - team.length) }, () => el('div.slot-empty', {}, '+')),
-              ),
-            ),
-            el('div.hub-npc.panel', {},
-              el('span.face', {}, NPCS[npcKey].glyph),
-              el('div', {},
-                el('b', {}, NPCS[npcKey].name),
-                el('span.dim', {}, npcLine),
-              ),
+            el('div.slots', {},
+              ...team.map(m => monToken(m.species, { size: '2.9rem', animated: true })),
+              ...Array.from({ length: Math.max(0, 6 - team.length) }, () => el('div.slot-empty', { style: { width: '2.9rem', height: '2.9rem' } }, '+')),
             ),
           ),
         ),
+        hint,
+        el('div.hub-nav', {}, ...items),
       ),
     );
 

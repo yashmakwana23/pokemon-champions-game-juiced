@@ -4,6 +4,7 @@ import { go } from '../engine/scenes.js';
 import { state, newGame, wipeSave, save } from '../state/store.js';
 import { sfx } from '../engine/audio.js';
 import { monToken } from '../ui/widgets.js';
+import { showdownBg } from '../data/sprites.js';
 import { pickN } from '../engine/rng.js';
 import { SPECIES } from '../data/species.js';
 
@@ -12,10 +13,9 @@ export const titleScene = {
     const hasSave = !!state()?.flags;
     const cast = pickN(Object.keys(SPECIES), 5);
 
-    root.append(el('div.title-scene', {},
-      el('div.skyline'),
+    root.append(el('div.title-scene', { style: { '--bg': `url("${showdownBg('city')}")` } },
       el('div.title-cast', {},
-        ...cast.map((s, i) => monToken(s, { size: `${3.6 + (i === 2 ? 1.8 : 0)}rem` })),
+        ...cast.map((s, i) => monToken(s, { size: `${6 + (i === 2 ? 3 : 0)}rem`, animated: true })),
       ),
       el('div.title-logo', {},
         el('div.poke', {}, 'POKÉMON'),

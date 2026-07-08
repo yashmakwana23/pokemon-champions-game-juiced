@@ -50,10 +50,10 @@ function step2(root, S) {
       },
     },
       el('h3', {}, b.name),
-      el('div.lead-token', {}, monToken(b.lead, { size: '5rem' })),
+      el('div.lead-token', {}, monToken(b.lead, { size: '7rem', animated: true })),
       el('b', {}, b.lead),
       el('p.dim', { style: { fontSize: '0.78rem', marginTop: '0.4rem' } }, b.blurb),
-      el('div.members', {}, ...b.team.slice(1).map(m => monToken(m, { size: '2.3rem' }))),
+      el('div.members', {}, ...b.team.slice(1).map(m => monToken(m, { size: '3.2rem', animated: true }))),
     );
     return card;
   });

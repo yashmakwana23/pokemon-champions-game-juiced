@@ -140,7 +140,7 @@ function preview(root, { mode, opp }) {
         },
       },
         idx >= 0 ? el('span.ord', {}, String(idx + 1)) : el('span', { style: { width: '1.5rem' } }),
-        monToken(m.species, { size: '2.9rem' }),
+        monToken(m.species, { size: '4.6rem', animated: true }),
         el('div.grow', {},
           el('b', {}, m.species),
           el('div.row', {}, ...SPECIES[m.species].types.map(typeBadge)),

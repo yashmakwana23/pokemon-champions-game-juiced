@@ -15,7 +15,11 @@ import { chooseAction, chooseSwitch } from '../systems/battle-ai.js';
 import { scriptedTeam, generateOpponent } from '../systems/teamgen.js';
 import { CORDY_TEAM, NPCS, ROTIE_TIPS } from '../data/trainers.js';
 import { monToken, typeBadge, toast } from '../ui/widgets.js';
-import { attachFx, detachFx, burst, sparkleRise, screenShake, flashStage } from '../engine/fx.js';
+import { showdownBg, BATTLE_SCENES } from '../data/sprites.js';
+import { attachFx, detachFx, burst, sparkleRise, screenShake, flashStage, ring, weatherStart, weatherStop } from '../engine/fx.js';
+import { hitStop, setTimeScale } from '../engine/loop.js';
+import { tween, Easing } from '../engine/tween.js';
+import { playMoveAnim, archetypeOf, isMelee, tintOf } from '../data/anim.js';
 import { TYPE_COLORS } from '../data/types.js';
 import { sfx } from '../engine/audio.js';
 import { pick } from '../engine/rng.js';
@@ -48,8 +52,24 @@ export const battleScene = {
     });
 
     // ---------- DOM scaffold ----------
+    const arena = el('div.arena');
+    let sceneIdx = Math.floor(Math.random() * BATTLE_SCENES.length);
+    const applyScene = () => arena.style.setProperty('--bg', `url("${showdownBg(BATTLE_SCENES[sceneIdx])}")`);
+    applyScene();
+    const sceneBtn = el('button.top-btn', {
+      title: 'Change background',
+      onclick: () => { sceneIdx = (sceneIdx + 1) % BATTLE_SCENES.length; applyScene(); sfx.click(); },
+    }, '🏞');
+    const quitBtn = el('button.top-btn.quit', {
+      title: 'Leave battle',
+      onclick: () => {
+        sfx.cancel();
+        if (confirm('Leave the battle and return to the gym?')) { scene.cleanup(); go('hub'); }
+      },
+    }, '✕ Quit');
+    const topCtl = el('div.topctl', {}, quitBtn, sceneBtn);
     const stage = el('div.battle-stage', {},
-      el('div.crowd'),
+      arena,
       el('canvas', { id: 'fx-canvas' }),
     );
     const fieldInfo = el('div.field-info');
@@ -57,22 +77,26 @@ export const battleScene = {
     const allyPlate = el('div.plate.ally');
     const foeSpot = el('div.combatant.foe');
     const allySpot = el('div.combatant.ally');
-    stage.append(fieldInfo, foePlate, allyPlate, foeSpot, allySpot);
 
+    // Input + message live ON the scene now (no separate dock panel): the move
+    // cluster sits beside the player's Pokémon, the message reads along the base.
     const logLine = el('div.log-line', {}, ' ');
     const dockRow = el('div.dock-row');
-    const dock = el('div.dock', {}, logLine, dockRow);
-    root.append(el('div.battle', {}, stage, dock));
+    stage.append(fieldInfo, foePlate, allyPlate, foeSpot, allySpot, dockRow, logLine, topCtl);
+    root.append(el('div.battle', {}, stage));
     attachFx(stage.querySelector('#fx-canvas'));
+    // cinematic 3D camera sweep on battle open (settles before you can act)
+    stage.classList.add('intro-cam');
+    setTimeout(() => stage.classList.remove('intro-cam'), 1600);
 
     let timerId = null;
     let rotieNode = null;
-    scene.cleanup = () => { clearInterval(timerId); detachFx(); };
+    scene.cleanup = () => { clearInterval(timerId); weatherStop(); setTimeScale(1); detachFx(); };
 
     // ---------- render helpers ----------
     const spotOf = (mon) => (mon.side.idx === 0 ? allySpot : foeSpot);
     const plateOf = (mon) => (mon.side.idx === 0 ? allyPlate : foePlate);
-    const posOf = (mon) => (mon.side.idx === 0 ? { x: 0.22, y: 0.68 } : { x: 0.78, y: 0.3 });
+    const posOf = (mon) => (mon.side.idx === 0 ? { x: 0.17, y: 0.58 } : { x: 0.80, y: 0.34 });
 
     function renderCombatant(mon) {
       const spot = spotOf(mon);
@@ -81,11 +105,13 @@ export const battleScene = {
       spot.className = `combatant ${mon.side.idx === 0 ? 'ally' : 'foe'}`;
       spot.append(
         monToken(mon.inst.species, {
-          size: mon.side.idx === 0 ? '8.6rem' : '7.2rem',
+          size: mon.side.idx === 0 ? '18rem' : '14rem',
           mega: mon.isMega,
           types: mon.types,
           glyph: SPECIES[mon.inst.species].glyph,
           form: mon.isMega ? mon.name : null,
+          animated: true,
+          back: mon.side.idx === 0,
         }),
         el('div.platform'),
       );
@@ -139,6 +165,10 @@ export const battleScene = {
       }
       stage.className = 'battle-stage' + (B.weather.kind ? ` w-${B.weather.kind}` : '') + (B.field.trickroom > 0 ? ' trickroom' : '');
       fieldInfo.append(...chips.map(c => el('span.field-chip', {}, c)));
+
+      // Sync live weather particles to the current condition.
+      const wk = B.weather.kind || null;
+      if (wk !== curWeather) { curWeather = wk; if (wk) weatherStart(wk); else weatherStop(); }
     }
 
     function renderAll() {
@@ -163,25 +193,79 @@ export const battleScene = {
       setTimeout(() => { rotieNode?.remove(); rotieNode = null; }, 4200);
     }
 
+    // Cinematic camera — drives --cam (zoom) / transform-origin, composited with
+    // the FX shake in CSS (no transition, so shake stays crisp). camZoom is the
+    // held baseline; punches overshoot around it, then settle back.
+    let camZoom = 1;
+    const camOrigin = (pt) => { stage.style.transformOrigin = `${pt.x * 100}% ${pt.y * 100}%`; };
+    const setCam = (v) => { camZoom = v; stage.style.setProperty('--cam', String(v)); };
+    function cameraZoom(pt, z = 1.06, dur = 0.35) {         // push in toward a point
+      camOrigin(pt);
+      tween({ from: camZoom, to: z, dur, ease: Easing.quadOut, onUpdate: setCam });
+    }
+    function cameraReset(dur = 0.45) {                       // ease back to neutral
+      tween({ from: camZoom, to: 1, dur, ease: Easing.quadOut, onUpdate: setCam });
+    }
+    function cameraPunch(pt, amt = 0.05) {                   // quick impact overshoot
+      camOrigin(pt);
+      const base = camZoom;
+      tween({ from: base + amt, to: base, dur: 0.3, ease: Easing.expoOut, onUpdate: v => stage.style.setProperty('--cam', String(v)) });
+    }
+
+    // Full-stage color wash tinted to the move's type (::after overlay in CSS).
+    function flashType(color) {
+      stage.style.setProperty('--flash-col', color);
+      stage.classList.remove('flash-type'); void stage.offsetWidth;
+      stage.classList.add('flash-type');
+    }
+
+    // Chip-chip-chip ticks while an HP bar drains.
+    function drainTicks(n = 6) {
+      for (let i = 0; i < n; i++) setTimeout(() => sfx.tick(), i * 55);
+    }
+
+    let curWeather = null;          // reflected into fx weather particles by renderField
+    let lastMoveTint = '#ffffff';   // type color of the in-flight move, for hit reactions
+
     // ---------- engine event consumer ----------
     const SPEED = 1;
     B.E = async (ev) => {
       switch (ev.t) {
-        case 'msg': case 'eff': case 'usemove': case 'status': case 'stage':
+        case 'usemove': {
+          if (ev.text) logLine.textContent = ev.text;
+          const mon = ev.mon;
+          lastMoveTint = tintOf(ev.move);
+          const arch = archetypeOf(ev.move);
+          const selfCast = ['buff', 'heal', 'screen', 'weather'].includes(arch) || ev.move.target === 'self';
+          const target = selfCast ? mon : (B.activeFoe(mon) ?? mon);
+
+          // distinct attacker motion per move archetype
+          const ACT = {
+            strike: mon.side.idx === 0 ? 'attack-ally' : 'attack-foe',
+            slam: 'act-stomp', quake: 'act-stomp',
+            orb: 'act-throw', meteor: 'act-throw', hex: 'act-throw',
+            beam: 'act-charge', wave: 'act-charge', bolt: 'act-charge',
+            buff: 'cast', heal: 'cast', screen: 'cast', field: 'cast', weather: 'cast',
+          };
+          const actClass = ACT[arch] || 'act-charge';
+          const spot = spotOf(mon);
+          spot.classList.remove('attack-ally', 'attack-foe', 'cast', 'act-stomp', 'act-throw', 'act-charge');
+          void spot.offsetWidth;
+          spot.classList.add(actClass);
+
+          await playMoveAnim(ev.move, { from: posOf(mon), to: posOf(target) }, { color: lastMoveTint });
+          spot.classList.remove(actClass);
+          await sleep(120 * SPEED);
+          break;
+        }
+        case 'msg': case 'eff': case 'status': case 'stage':
         case 'weather': case 'field': {
-          if (ev.text) { logLine.textContent = ev.text; }
-          if (ev.t === 'usemove') {
-            const mon = ev.mon;
-            spotOf(mon).classList.remove('attack-ally', 'attack-foe');
-            void spotOf(mon).offsetWidth;
-            spotOf(mon).classList.add(mon.side.idx === 0 ? 'attack-ally' : 'attack-foe');
-            if (ev.move.cat !== 'status') {
-              const tp = posOf(B.activeFoe(mon) ?? mon);
-              setTimeout(() => burst(tp.x, tp.y, { color: TYPE_COLORS[ev.move.type] ?? '#7df9ff', count: 16 }), 200 * SPEED);
-            }
+          if (ev.text) logLine.textContent = ev.text;
+          if (ev.t === 'msg' && ev.text === 'A critical hit!') {
+            sfx.crit(); flashType('#ffd76b'); screenShake(9);
           }
           if (ev.t === 'eff') {
-            if (ev.mult >= 2) { sfx.superHit(); screenShake(ev.mult >= 4 ? 13 : 8); }
+            if (ev.mult >= 2) { sfx.superHit(); screenShake(ev.mult >= 4 ? 14 : 9); hitStop(ev.mult >= 4 ? 0.1 : 0.07); }
             else if (ev.mult < 1) sfx.weakHit();
           }
           if (ev.t === 'status') { sfx.status(); renderPlate(ev.mon); }
@@ -195,17 +279,27 @@ export const battleScene = {
           if (ev.text) logLine.textContent = ev.text;
           if (diff < 0) {
             const mon = ev.mon;
+            const p = posOf(mon);
+            const frac = Math.abs(diff) / mon.maxHp;
+            const mult = ev.mult ?? 1;
+            const big = mult >= 2 || frac > 0.34;
             spotOf(mon).classList.remove('hurt'); void spotOf(mon).offsetWidth;
             spotOf(mon).classList.add('hurt');
-            flashStage('flash-hit');
+            flashType(lastMoveTint);
+            cameraPunch(p, big ? 0.075 : 0.038);
+            hitStop(big ? 0.07 : 0.035);
+            screenShake(big ? 8 : 4);
+            burst(p.x, p.y, { count: big ? 20 : 12, color: lastMoveTint, speed: 260, size: 4, shape: 'spark', blend: 'add', life: 0.35 });
             if (!ev.heal) sfx.hit();
-            floatDmg(mon, -diff, {});
+            floatDmg(mon, -diff, { crit: false });
+            drainTicks(big ? 8 : 5);
           } else if (diff > 0) {
             flashStage('flash-heal');
             sfx.heal();
             floatDmg(ev.mon, diff, { heal: true });
             const p = posOf(ev.mon);
             sparkleRise(p.x, p.y, '#3ddb97');
+            drainTicks(5);
           }
           renderPlate(ev.mon);
           await sleep(560 * SPEED);
@@ -217,7 +311,8 @@ export const battleScene = {
           if (ev.t === 'switch') {
             spotOf(ev.mon).classList.add('enter');
             const p = posOf(ev.mon);
-            burst(p.x, p.y, { color: '#ffffff', count: 14, speed: 150 });
+            ring(p.x, p.y, { color: '#ffffff', maxR: 0.13, dur: 0.4, width: 4 });
+            burst(p.x, p.y, { color: '#ffffff', count: 16, speed: 170, size: 3 });
             sfx.click();
           }
           await sleep(520 * SPEED);
@@ -226,9 +321,15 @@ export const battleScene = {
         case 'faint': {
           logLine.textContent = ev.text;
           sfx.faint();
+          const p = posOf(ev.mon);
+          setTimeScale(0.4);
+          screenShake(7);
+          burst(p.x, p.y, { count: 28, color: '#ffffff', speed: 220, size: 4, shape: 'glow', blend: 'add' });
+          ring(p.x, p.y, { color: '#ffffff', maxR: 0.2, dur: 0.55, width: 5 });
           spotOf(ev.mon).classList.add('fainted');
           renderPlate(ev.mon);
-          await sleep(700 * SPEED);
+          setTimeout(() => setTimeScale(1), 480);
+          await sleep(760 * SPEED);
           renderAll();
           break;
         }
@@ -237,8 +338,10 @@ export const battleScene = {
           flashStage('flash-mega');
           sfx.mega();
           const p = posOf(ev.mon);
+          cameraPunch(p, 0.06);
           sparkleRise(p.x, p.y, '#b26bff');
-          burst(p.x, p.y, { color: '#b26bff', count: 30, speed: 260 });
+          ring(p.x, p.y, { color: '#b26bff', maxR: 0.22, dur: 0.6, width: 6 });
+          burst(p.x, p.y, { color: '#b26bff', count: 36, speed: 280, size: 4, shape: 'glow', blend: 'add' });
           renderAll();
           if (ev.mon.side.idx === 0) B.counters.megaUsed = true;
           await sleep(900 * SPEED);
@@ -266,7 +369,7 @@ export const battleScene = {
                 disabled: dis,
                 onclick: () => { sfx.confirm(); resolve(i); },
               },
-                monToken(m.inst.species, { size: '2.7rem', mega: m.isMega, types: m.types }),
+                monToken(m.inst.species, { size: '3.8rem', mega: m.isMega, types: m.types, animated: true }),
                 el('b', {}, m.name),
                 m.status ? el('span.status-tag.' + m.status, {}, m.status) : null,
                 el('div.hpmini', {}, el('i', { style: { width: `${(m.hp / m.maxHp) * 100}%` } })),
@@ -394,7 +497,7 @@ export const battleScene = {
                 disabled: dis,
                 onclick: () => resolve(i),
               },
-                monToken(m.inst.species, { size: '2.7rem', mega: m.isMega, types: m.types }),
+                monToken(m.inst.species, { size: '3.8rem', mega: m.isMega, types: m.types, animated: true }),
                 el('b', {}, m.name),
                 el('div.hpmini', {}, el('i', { style: { width: `${(m.hp / m.maxHp) * 100}%` } })),
                 el('small.dim', {}, `${Math.round((m.hp / m.maxHp) * 100)}%`),
@@ -425,6 +528,7 @@ export const battleScene = {
         clear(dockRow).append(el('div.grow', { style: { display: 'grid', placeItems: 'center', color: 'var(--dim)' } }, '— resolving turn —'));
         const aiAction = chooseAction(B, 1);
         await runTurn(B, [playerAction, aiAction]);
+        cameraReset();
         renderAll();
         save();
       }

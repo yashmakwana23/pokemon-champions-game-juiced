@@ -4,7 +4,16 @@
 .title-scene {
   flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 1.6rem; position: relative; overflow: hidden;
+  background: var(--bg, none) center 30% / cover no-repeat, #12142a;
+  image-rendering: pixelated;
 }
+/* darken the scene so the logo + buttons stay legible over the art */
+.title-scene::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: linear-gradient(180deg, rgba(10,10,22,.72), rgba(10,10,22,.5) 45%, rgba(10,10,22,.82));
+}
+.title-cast .token { background: none; border: none; box-shadow: none; filter: drop-shadow(0 6px 5px rgba(0,0,0,.6)); }
+.title-cast .token .art { animation: idle-bob-hub 2.6s ease-in-out infinite; }
 .title-scene .skyline {
   position: absolute; inset: auto 0 0 0; height: 34%; pointer-events: none;
   background:
@@ -48,67 +57,80 @@
 .bundle .members { display: flex; justify-content: center; gap: 0.35rem; margin-top: 0.7rem; flex-wrap: wrap; }
 .bundle .members .token { width: 2.4rem; height: 2.4rem; font-size: 1.2rem; }
 
-/* ---------- HUB: gym scene + RPG command menu ---------- */
-.hub { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.hub-scene {
-  position: relative; height: 9.5rem; flex: 0 0 auto; margin: 1rem 1.2rem 0; overflow: hidden;
-  background:
-    /* back wall */
-    linear-gradient(180deg, #24283b 0 55%, transparent 55%),
-    /* wall trim + windows */
-    repeating-linear-gradient(90deg, transparent 0 64px, rgba(115,239,247,.16) 64px 92px, transparent 92px 156px),
-    /* floor bands */
-    repeating-linear-gradient(180deg, #29366f 0 12px, #253161 12px 24px);
-  border: 3px solid var(--line); outline: 3px solid var(--edge);
-  box-shadow: var(--shadow);
+/* ---------- HUB: hero lobby (featured mon centre-stage + bottom icon nav) ---------- */
+.hub {
+  flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative;
+  background: var(--bg, none) center 30% / cover no-repeat, #12142a;
+  image-rendering: pixelated;
 }
-.hub-scene .gym-sign {
-  position: absolute; top: 0.9rem; left: 50%; transform: translateX(-50%);
-  font-family: var(--font-head); font-size: 0.75rem; color: var(--gold);
+.hub-hero { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.hub-hero::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(130% 100% at 50% 4%, transparent 50%, rgba(8,8,20,.6)),
+    linear-gradient(180deg, rgba(8,8,20,.18), rgba(8,8,20,.5));
+}
+.hub-hero > * { position: relative; z-index: 1; }
+.hub-hero .gym-sign {
+  position: absolute; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 4;
+  font-family: var(--font-head); font-size: 0.72rem; color: var(--gold);
   text-shadow: 2px 2px 0 var(--edge); white-space: nowrap;
   background: var(--edge); padding: 0.5em 1.2em; border: 2px solid var(--line);
 }
-.hub-scene .npc {
-  position: absolute; bottom: 0.6rem; font-size: 2.2rem;
-  filter: drop-shadow(2px 3px 0 rgba(0,0,0,.5));
+.rank-badge {
+  position: absolute; top: 1rem; left: 1.2rem; z-index: 3; min-width: 13rem;
+  background: rgba(18,14,36,.82); border: 3px solid var(--edge); box-shadow: 3px 3px 0 rgba(11,11,18,.5);
+  padding: 0.5rem 0.7rem;
 }
-.hub-scene .mon-walk { position: absolute; bottom: 0.35rem; }
-.hub-scene .mon-walk .token { background: none; border: none; box-shadow: none; }
+.rank-badge .tier { font-family: var(--font-head); font-size: 0.56rem; color: var(--neon); }
+.rank-badge .gauge { margin: 0.35rem 0 0.25rem; }
 
-.hub-body { flex: 1; display: grid; grid-template-columns: 1.25fr 1fr; gap: 1rem; padding: 1rem 1.2rem; min-height: 0; }
+/* featured cast standing on the plaza */
+.hero-cast {
+  position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center;
+  gap: 0.4rem; padding-bottom: 3%;
+}
+.hero-cast .cast-mon .token, .hero-cast .trainer-av { background: none; border: none; box-shadow: none; }
+.hero-cast .cast-mon .art { filter: drop-shadow(0 9px 7px rgba(0,0,0,.6)); animation: idle-bob-hub 2.7s ease-in-out infinite; }
+.hero-cast .cast-mon.side { align-self: flex-end; opacity: 0.92; }
+.hero-cast .cast-mon.side:first-child .art { animation-duration: 3.2s; }
+.hero-cast .cast-mon.lead { z-index: 2; }
+.hero-cast .trainer-av { align-self: flex-end; font-size: 5.5rem; margin-bottom: 0.5rem; filter: drop-shadow(0 7px 5px rgba(0,0,0,.6)); }
+@keyframes idle-bob-hub { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 
-/* RPG command list */
-.cmd-menu { display: flex; flex-direction: column; padding: 0.8rem; gap: 0.15rem; overflow-y: auto; }
-.cmd-item {
-  display: flex; align-items: center; gap: 0.8rem; text-align: left;
-  font-family: var(--font-head); font-size: 0.78rem; text-transform: uppercase;
-  padding: 0.7em 0.8em; color: var(--ink);
-  border: 3px solid transparent;
+.hero-say {
+  position: absolute; left: 1.2rem; bottom: 1rem; z-index: 3; max-width: 23rem;
+  background: var(--cream); color: var(--cream-ink); border: 3px solid var(--edge);
+  box-shadow: 3px 3px 0 rgba(11,11,18,.5); padding: 0.5rem 0.75rem; font-size: 1.05rem; line-height: 1.25;
 }
-.cmd-item .cursor { width: 1.1em; color: var(--gold); visibility: hidden; }
-.cmd-item .ic { font-size: 1.25rem; filter: drop-shadow(2px 2px 0 rgba(0,0,0,.5)); }
-.cmd-item .badge {
-  margin-left: auto; background: var(--danger); color: #fff;
-  font-size: 0.55rem; padding: 0.3em 0.6em; border: 2px solid var(--edge);
+.hero-say .who { font-family: var(--font-head); font-size: 0.5rem; color: #7a3045; display: block; margin-bottom: 0.3rem; }
+.hero-team {
+  position: absolute; right: 1.2rem; bottom: 1rem; z-index: 3;
+  background: rgba(18,14,36,.82); border: 3px solid var(--edge); box-shadow: 3px 3px 0 rgba(11,11,18,.5);
+  padding: 0.5rem 0.65rem;
 }
-.cmd-item:hover, .cmd-item.sel {
-  background: var(--panel3); border-color: var(--edge);
-  box-shadow: inset 0 0 0 2px var(--line);
-}
-.cmd-item:hover .cursor, .cmd-item.sel .cursor { visibility: visible; }
-.cmd-hint {
-  margin: 0.35rem 0.8rem 0.7rem; padding: 0.5rem 0.8rem; font-size: 1.1rem; color: var(--dim);
-  border-top: 3px solid var(--edge);
-}
+.hero-team .slots { display: flex; gap: 0.3rem; flex-wrap: wrap; max-width: 12rem; }
+.hero-team .slot-empty { border: 3px dashed var(--line); display: grid; place-items: center; color: var(--dim); }
 
-.hub-side { display: flex; flex-direction: column; gap: 0.9rem; min-height: 0; overflow-y: auto; }
-.rank-card { padding: 0.9rem 1rem; }
-.rank-card .tiername { font-family: var(--font-head); font-size: 0.8rem; color: var(--neon); margin-top: 0.35rem; }
-.hub-npc { padding: 0.8rem 0.9rem; display: flex; gap: 0.8rem; align-items: flex-start; font-size: 1.1rem; background: var(--cream); color: var(--cream-ink); }
-.hub-npc .face { font-size: 2rem; }
-.hub-npc b { font-family: var(--font-head); font-size: 0.6rem; display: block; margin-bottom: 0.3rem; color: #7a3045; }
-.hub-npc .dim { color: #4a4634; }
-.team-strip { padding: 0.8rem 0.9rem; }
+/* bottom icon navigation bar */
+.hub-nav {
+  flex: 0 0 auto; display: flex; gap: 0.5rem; padding: 0.6rem 1rem;
+  background: var(--panel2); border-top: 3px solid var(--edge); box-shadow: 0 -3px 0 var(--line);
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+  padding: 0.55rem 0.4rem; color: var(--ink); cursor: pointer; position: relative;
+  background: var(--panel3); border: 3px solid var(--edge); box-shadow: 3px 3px 0 var(--edge);
+}
+.nav-btn .ic { font-size: 1.9rem; filter: drop-shadow(2px 2px 0 rgba(0,0,0,.5)); }
+.nav-btn .lbl { font-family: var(--font-head); font-size: 0.44rem; text-align: center; }
+.nav-btn:hover, .nav-btn.sel { filter: brightness(1.2); border-color: var(--neon); }
+.nav-btn.primary { border-color: var(--gold); box-shadow: 3px 3px 0 var(--edge), inset 0 0 0 2px rgba(255,205,117,.3); }
+.nav-btn .badge {
+  position: absolute; top: -7px; right: -7px; background: var(--danger); color: #fff;
+  font-family: var(--font-head); font-size: 0.4rem; padding: 0.25em 0.45em; border: 2px solid var(--edge);
+}
+.cmd-hint { flex: 0 0 auto; padding: 0.35rem 1rem; background: var(--panel2); color: var(--dim); font-size: 0.98rem; border-top: 2px solid var(--line); }
 .team-strip .slots { display: flex; gap: 0.45rem; margin-top: 0.55rem; flex-wrap: wrap; }
 .team-strip .token, .slot-empty { width: 3rem; height: 3rem; font-size: 1.5rem; }
 .slot-empty { border: 3px dashed var(--line); display: grid; place-items: center; color: var(--dim); }
@@ -120,7 +142,7 @@
 /* ---------- ranch ---------- */
 .lineup { display: grid; grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr)); gap: 0.9rem; flex: 1; align-content: start; overflow-y: auto; }
 .recruit-card { padding: 0.9rem; text-align: center; display: flex; flex-direction: column; gap: 0.45rem; align-items: center; }
-.recruit-card .token { width: 5.4rem; height: 5.4rem; font-size: 2.7rem; }
+.recruit-card .token { width: 8rem; height: 8rem; font-size: 4rem; }
 .recruit-card .nm { font-family: var(--font-head); font-size: 0.66rem; }
 .recruit-card .price { color: var(--gold); font-size: 1.2rem; }
 .recruit-card .row { justify-content: center; flex-wrap: wrap; gap: 0.4rem; }
@@ -129,17 +151,17 @@
 .ranch-side h3 { margin-bottom: 0.3rem; }
 
 /* ---------- box / team ---------- */
-.box-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.6rem, 1fr)); gap: 0.55rem; align-content: start; flex: 1; overflow-y: auto; padding: 0.6rem; }
-.box-mon { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 0.45rem 0.2rem; cursor: pointer; border: 3px solid transparent; }
+.box-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.6rem, 1fr)); gap: 0.55rem; align-content: start; flex: 1; overflow-y: auto; padding: 0.6rem; }
+.box-mon { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 0.4rem 0.2rem; cursor: pointer; border: 3px solid transparent; }
 .box-mon:hover, .box-mon.selected { background: var(--panel3); border-color: var(--edge); box-shadow: inset 0 0 0 2px var(--line); }
-.box-mon .token { width: 3.3rem; height: 3.3rem; font-size: 1.7rem; }
-.box-mon .nm { font-size: 0.85rem; text-align: center; line-height: 1; }
+.box-mon .token { width: 6.5rem; height: 6.5rem; font-size: 3.2rem; }
+.box-mon .nm { font-size: 0.9rem; text-align: center; line-height: 1; }
 .box-mon .in-team { position: absolute; top: 1px; right: 3px; color: var(--gold); font-size: 0.85rem; }
 .box-mon .trial-tag { position: absolute; top: 1px; left: 3px; font-family: var(--font-head); font-size: 0.45rem; background: var(--magenta); color: #2b0b3d; padding: 0.2em 0.35em; border: 2px solid var(--edge); z-index: 1; }
 .box-mon .item-dot { position: absolute; bottom: 1.5rem; right: 6%; font-size: 0.8rem; }
 .inspector { width: 21rem; padding: 0.9rem; display: flex; flex-direction: column; gap: 0.6rem; overflow-y: auto; }
 .inspector .head { display: flex; gap: 0.8rem; align-items: center; }
-.inspector .head .token { width: 4.2rem; height: 4.2rem; font-size: 2rem; }
+.inspector .head .token { width: 6.5rem; height: 6.5rem; font-size: 3.2rem; }
 .statbars { display: grid; gap: 0.28rem; }
 .statbar { display: grid; grid-template-columns: 3.6rem 2.2rem 1fr auto; align-items: center; gap: 0.5rem; font-size: 1rem; }
 .statbar .bar { height: 0.6rem; background: var(--edge); box-shadow: inset 0 0 0 1px var(--line); }
@@ -184,9 +206,27 @@
 /* ---------- missions ---------- */
 .mission-list { display: grid; gap: 0.6rem; align-content: start; }
 .mission { display: flex; align-items: center; gap: 0.9rem; padding: 0.6rem 0.9rem; }
-.mission .info { flex: 1; }
+.mission .m-icon {
+  flex: 0 0 auto; width: 2.9rem; height: 2.9rem; display: grid; place-items: center;
+  font-size: 1.6rem; background: var(--panel3); border: 2px solid var(--edge);
+  filter: drop-shadow(1px 1px 0 rgba(0,0,0,.4));
+}
+.mission .info { flex: 1; min-width: 0; }
 .mission .info b { font-size: 1.15rem; }
-.mission .reward { color: var(--gold); font-size: 1.1rem; white-space: nowrap; }
+.mission .prog {
+  position: relative; height: 1rem; margin-top: 0.35rem;
+  background: var(--edge); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden;
+}
+.mission .prog > i {
+  display: block; height: 100%;
+  background: repeating-linear-gradient(90deg, #38b764 0 6px, #2b8a4d 6px 8px);
+  transition: width 0.4s steps(12, end);
+}
+.mission .prog-txt {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 0.82rem; color: #fff; text-shadow: 1px 1px 0 var(--edge); letter-spacing: 0.03em;
+}
+.mission .reward { color: var(--gold); font-size: 1.15rem; white-space: nowrap; font-family: var(--font-head); font-size: 0.6rem; }
 .mission.done { box-shadow: var(--shadow), inset 0 0 0 3px var(--ok); }
 .season-track { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.8rem; }
 .season-node { min-width: 6.6rem; text-align: center; padding: 0.55rem 0.4rem; border: 2px solid var(--edge); background: var(--panel2); font-size: 0.95rem; }

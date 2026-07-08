@@ -21,6 +21,7 @@ export const boxScene = {
 
     function render() {
       const sel = getMon(selected);
+      const reserves = S.box.filter(m => !S.team.includes(m.uid));
       clear(body).append(
         el('div', { style: { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, gap: '0.7rem' } },
           el('div.panel', { style: { padding: '0.7rem 1rem' } },
@@ -33,25 +34,28 @@ export const boxScene = {
                 const m = getMon(uid);
                 if (!m) return null;
                 return el('button', { onclick: () => { selected = uid; render(); }, title: m.species, style: { position: 'relative' } },
-                  monToken(m.species, { size: '3.1rem' }));
+                  monToken(m.species, { size: '5rem', animated: true }));
               }),
               ...Array.from({ length: Math.max(0, 6 - S.team.length) }, () =>
-                el('div.slot-empty', { style: { width: '3.1rem', height: '3.1rem' } }, '+')),
+                el('div.slot-empty', { style: { width: '5rem', height: '5rem' } }, '+')),
             ),
           ),
           el('div.box-grid.panel', { style: { padding: '0.6rem' } },
-            ...S.box.map(m => {
-              const inTeam = S.team.includes(m.uid);
+            el('h3', { style: { gridColumn: '1 / -1', margin: '0 0 0.15rem' } },
+              `Reserves — ${reserves.length} (not on team · tap to inspect or add)`),
+            ...reserves.map(m => {
               return el('div.box-mon' + (m.uid === selected ? '.selected' : ''), {
                 onclick: () => { selected = m.uid; sfx.click(); render(); },
               },
-                inTeam ? el('span.in-team', {}, '★') : null,
                 isTrial(m) ? el('span.trial-tag', {}, 'T') : null,
                 m.item ? el('span.item-dot', { title: m.item }, '🎒') : null,
-                monToken(m.species, { size: '3.2rem' }),
+                monToken(m.species, { size: '6.5rem', animated: true }),
                 el('span.nm', {}, m.species),
               );
             }),
+            reserves.length === 0
+              ? el('p.dim', { style: { gridColumn: '1 / -1', padding: '0.6rem' } }, 'No reserves — all your Pokémon are on the team. Recruit more at the Roster Ranch.')
+              : null,
           ),
         ),
         sel ? el('div', { style: { display: 'flex', flexDirection: 'column', gap: '0.6rem', minHeight: 0 } },

@@ -74,7 +74,7 @@ export const trainingScene = {
           // left: preview
           el('div.train-col.panel', {},
             el('div.row', {},
-              monToken(mon.species, { size: '4.4rem' }),
+              monToken(mon.species, { size: '6.5rem', animated: true }),
               el('div', {},
                 el('b', {}, mon.species),
                 el('div.row', { style: { marginTop: '0.2rem' } }, ...sp.types.map(typeBadge)),

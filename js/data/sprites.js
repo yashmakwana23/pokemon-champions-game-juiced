@@ -32,3 +32,44 @@ export function spriteUrl(speciesName, { form = null } = {}) {
   const dex = SPECIES[speciesName]?.dex;
   return dex ? `${CDN}${dex}.png` : null;
 }
+
+// Gen-5 (Black/White) animated sprites — the mon visibly breathes/idles with no
+// animation code of our own. Only National Dex ≤ 649 has these frames, and
+// Mega/regional forms don't, so those callers fall back to the static art via
+// the monToken source chain. `back` gives the over-the-shoulder view for the
+// player's own Pokémon.
+const ANIM = `${CDN}versions/generation-v/black-white/animated/`;
+export function animatedUrl(speciesName, { form = null, back = false } = {}) {
+  if (form) return null; // no animated frames for Megas / regional forms
+  const dex = SPECIES[speciesName]?.dex;
+  if (!dex || dex > 649) return null;
+  return `${ANIM}${back ? 'back/' : ''}${dex}.gif`;
+}
+
+// Pokémon Showdown animated-sprite CDN — a proper CDN (no GitHub-raw rate
+// limits), covers every gen incl. Megas, and serves back sprites. Keyed by a
+// lowercase alphanumeric "showdown id" rather than dex number.
+const SHOWDOWN = 'https://play.pokemonshowdown.com/sprites/';
+export function showdownId(name) {
+  return String(name).toLowerCase()
+    .replace(/[.'’:]/g, '')
+    .replace(/\s+/g, '')
+    .replace(/♀/g, 'f').replace(/♂/g, 'm');
+}
+// style: 'ani' (Gen-5 BW animated) or 'xyani' (X/Y animated, wider coverage).
+export function showdownUrl(name, { back = false, style = 'ani' } = {}) {
+  const dir = back ? `${style}-back` : style;
+  return `${SHOWDOWN}${dir}/${showdownId(name)}.gif`;
+}
+
+// Scenic battle backgrounds (real pixel-art scenes, same CDN). e.g. 'meadow',
+// 'beach', 'forest', 'city', 'desert', 'earthycave', 'icecave', 'mountain'.
+// Only full-scene backgrounds. (The gen3/gen4 bgs are structured DS battle
+// backdrops with baked-in bases + side bars, so they look broken stretched.)
+export const BATTLE_SCENES = [
+  'meadow', 'forest', 'beach', 'beachshore', 'deepsea', 'city',
+  'desert', 'mountain', 'earthycave', 'icecave', 'dampcave',
+];
+export function showdownBg(scene = 'meadow') {
+  return `${SHOWDOWN.replace('sprites/', '')}fx/bg-${scene}.png`;
+}

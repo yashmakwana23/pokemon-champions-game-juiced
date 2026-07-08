@@ -3,7 +3,7 @@
 import { el, $ } from '../engine/dom.js';
 import { TYPE_COLORS } from '../data/types.js';
 import { SPECIES } from '../data/species.js';
-import { spriteUrl } from '../data/sprites.js';
+import { spriteUrl, animatedUrl, showdownUrl } from '../data/sprites.js';
 import { MOVES } from '../data/moves.js';
 import { STAT_KEYS, STAT_LABELS } from '../systems/stats.js';
 import { state } from '../state/store.js';
@@ -15,9 +15,11 @@ export function typeBadge(type) {
   return el('span.type-badge', { style: { background: TYPE_COLORS[type] ?? '#666' } }, type);
 }
 
-// Mon token: type-gradient holo orb with real official artwork (resolved via
-// the dex's National Dex numbers); the species glyph is the offline fallback.
-export function monToken(speciesName, { size = '4rem', mega = false, types = null, glyph = null, form = null } = {}) {
+// Mon token: type-gradient holo orb with real artwork. In battle we prefer the
+// Gen-5 ANIMATED sprite (opt-in via `animated`, `back` for the player's mon),
+// and walk a source chain animated → static → glyph so anything missing (Megas,
+// Gen 6+, offline) degrades gracefully instead of showing a broken image.
+export function monToken(speciesName, { size = '4rem', mega = false, types = null, glyph = null, form = null, animated = false, back = false } = {}) {
   const sp = SPECIES[speciesName];
   const t = types ?? sp?.types ?? ['Normal'];
   const c1 = TYPE_COLORS[t[0]] ?? '#666';
@@ -30,14 +32,36 @@ export function monToken(speciesName, { size = '4rem', mega = false, types = nul
     },
     title: speciesName,
   }, glyphSpan);
-  const url = spriteUrl(speciesName, { form });
-  if (url) {
-    const img = el('img.art', {
-      src: url, alt: speciesName, loading: 'lazy', draggable: 'false',
+
+  // Ordered source candidates; first that loads wins, rest are skipped.
+  // Prefer the Showdown CDN (proper CDN, no GitHub-raw rate limits) for BASE
+  // forms everywhere — this keeps every screen's sprites reliable instead of
+  // falling back to the emoji glyph. Mega/regional forms have no clean Showdown
+  // id, so they use PokeAPI's dedicated form artwork. Order:
+  //   Showdown animated (back→front→xyani) → PokeAPI animated → static → glyph
+  const sources = [];
+  if (!form) {
+    if (animated && back) sources.push(showdownUrl(speciesName, { back: true, style: 'ani' }));
+    sources.push(showdownUrl(speciesName, { style: 'ani' }));
+    sources.push(showdownUrl(speciesName, { style: 'xyani' }));
+  }
+  if (animated) {
+    if (back) sources.push(animatedUrl(speciesName, { form, back: true }));
+    sources.push(animatedUrl(speciesName, { form }));
+  }
+  sources.push(spriteUrl(speciesName, { form }));
+  const chain = sources.filter(Boolean);
+
+  if (chain.length) {
+    const img = el('img.art' + (animated ? '.anim' : ''), {
+      alt: speciesName, draggable: 'false',
       onload: () => { glyphSpan.style.display = 'none'; },
-      onerror: () => { img.remove(); },
     });
+    let i = 0;
+    const next = () => { if (i < chain.length) img.src = chain[i++]; else img.remove(); };
+    img.addEventListener('error', next);
     node.append(img);
+    next();
   }
   return node;
 }

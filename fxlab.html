@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Pokémon Champions — FX Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/screens.css">
+  <link rel="stylesheet" href="css/battle.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+  <style>
+    /* FX Lab-only chrome */
+    #lab { position: fixed; inset: 0; display: flex; }
+    #lab .battle { height: 100%; }
+    #lab .battle-stage { min-height: 46vh; }
+    .lab-controls { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.2rem 0.2rem 0.6rem; overflow-y: auto; }
+    .lab-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .lab-label { font-family: var(--font-head); font-size: 0.52rem; color: var(--neon); margin-top: 0.2rem; }
+    .lab-field { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.95rem; color: var(--dim); }
+    .lab-sel { background: var(--panel3); color: var(--ink); border: 3px solid var(--edge); padding: 0.3rem 0.4rem; font-family: inherit; font-size: 1rem; }
+    .lab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 0.45rem; }
+    .lab-move {
+      text-align: left; padding: 0.4rem 0.55rem; color: var(--ink);
+      background: var(--panel3); border: 3px solid var(--edge);
+      border-left: 8px solid var(--c, var(--line)); box-shadow: 3px 3px 0 var(--edge);
+      display: flex; flex-direction: column; gap: 0.15rem; cursor: pointer;
+    }
+    .lab-move:hover { filter: brightness(1.18); }
+    .lab-move:active { transform: translate(3px, 3px); box-shadow: none; }
+    .lab-move b { font-family: var(--font-head); font-size: 0.5rem; }
+    .lab-move small { color: var(--dim); font-size: 0.85rem; }
+    .lab-btn {
+      background: var(--panel3); color: var(--ink); border: 3px solid var(--edge);
+      box-shadow: 3px 3px 0 var(--edge); padding: 0.4rem 0.7rem; cursor: pointer; font-size: 1rem;
+    }
+    .lab-btn:hover { filter: brightness(1.18); }
+    .lab-btn:active { transform: translate(3px, 3px); box-shadow: none; }
+    .lab-btn.swap { border-color: var(--neon); color: var(--neon); }
+    #lab .dock { min-height: 0; flex: 1; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="frame">
+    <div id="lab"></div>
+    <div id="toasts"></div>
+  </div>
+  <script type="module" src="js/fxlab.js"></script>
+</body>
+</html>

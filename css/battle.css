@@ -6,25 +6,56 @@
 
 .battle-stage {
   position: relative; flex: 1; min-height: 0; overflow: hidden;
-  background:
-    /* sky bands */
-    linear-gradient(180deg, #0f0f1b 0 18%, #1a1c2c 18% 40%, #24283b 40% 58%, transparent 58%),
-    /* arena floor bands */
-    repeating-linear-gradient(180deg, #29366f 0 14px, #24305f 14px 28px);
+  background: #0a0a14;
+  /* depth vignette */
+  box-shadow: inset 0 0 130px rgba(0,0,0,.55), inset 0 -40px 60px rgba(0,0,0,.4);
+  /* camera: FX shake (--shk-*) + impact zoom (--cam) composited here so they
+     never fight over the transform property; NO transition keeps shake crisp. */
+  transform: translate(var(--shk-x, 0px), var(--shk-y, 0px)) scale(var(--cam, 1));
+  transform-origin: 50% 60%;
+  will-change: transform;
 }
-.battle-stage .crowd {
-  position: absolute; inset: 12% 0 52% 0; pointer-events: none; opacity: 0.7;
-  background:
-    repeating-linear-gradient(90deg, rgba(244,244,244,.07) 0 4px, transparent 4px 11px),
-    repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 6px, transparent 6px 14px);
+
+/* ===== Stadium arena — dusk sky, tiered crowd, 3D-receding battle pitch ===== */
+/* Scenic battle background — a real pixel-art scene image (Showdown CDN),
+   set via --bg in JS. image-rendering keeps the pixels crisp when upscaled.
+   Falls back to a grass gradient if the image is unavailable (offline). */
+.arena {
+  position: absolute; inset: -3%; z-index: 0; overflow: hidden; pointer-events: none;
+  background-color: #4a7a3a;
+  background-image: var(--bg, none);
+  background-size: cover; background-position: center 38%; background-repeat: no-repeat;
+  image-rendering: pixelated;
+  /* very subtle ambient parallax drift (background only) */
+  animation: arena-drift 30s ease-in-out infinite alternate;
 }
-/* center line + ring */
-.battle-stage::before {
-  content: ''; position: absolute; left: 50%; top: 62%; transform: translateX(-50%);
-  width: 40%; height: 24%;
-  border: 4px solid rgba(115,239,247,.25);
-  box-shadow: 0 0 0 4px rgba(11,11,18,.6);
+@keyframes arena-drift {
+  0%   { transform: scale(1.05) translateX(-0.8%); }
+  100% { transform: scale(1.05) translateX(1%); }
 }
+
+/* Cinematic 3D camera sweep when the battle opens — the whole scene swings in
+   from an angle on a curved path and settles flat (no HUD interaction yet). */
+.battle-stage.intro-cam { animation: cam-intro 1.5s cubic-bezier(.2,.7,.3,1) both; }
+@keyframes cam-intro {
+  0%   { transform: perspective(1100px) rotateY(-18deg) rotateX(8deg) scale(1.3)  translateX(-5%); }
+  55%  { transform: perspective(1100px) rotateY(6deg)   rotateX(-2deg) scale(1.1) translateX(2%); }
+  100% { transform: perspective(1100px) rotateY(0)      rotateX(0)     scale(1)   translateX(0); }
+}
+/* soft grounding shade so sprites read as standing on the scene */
+.arena::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(120% 70% at 50% 84%, transparent 55%, rgba(0,0,0,.22));
+}
+
+/* per-type impact flash — a screen-blended color wash over the arena (below the
+   HUD plates so they stay readable). Tint comes from --flash-col set in JS. */
+.battle-stage::after {
+  content: ''; position: absolute; inset: 0; z-index: 9; pointer-events: none;
+  background: var(--flash-col, #fff); opacity: 0; mix-blend-mode: screen;
+}
+.battle-stage.flash-type::after { animation: type-flash 0.3s ease-out; }
+@keyframes type-flash { 0% { opacity: 0; } 22% { opacity: 0.36; } 100% { opacity: 0; } }
 
 /* weather tints */
 .battle-stage.w-rain  { filter: hue-rotate(12deg) brightness(0.85); }
@@ -37,26 +68,45 @@
 
 /* combatants */
 .combatant { position: absolute; display: flex; flex-direction: column; align-items: center; z-index: 4; }
-.combatant .token { width: 9.5rem; height: 9.5rem; font-size: 5rem; background: none; border: none; box-shadow: none; }
-.combatant .platform {
-  width: 12rem; height: 2.4rem; margin-top: -1.2rem;
-  background: #1a1c2c;
-  border: 3px solid var(--edge);
-  box-shadow: inset 0 4px 0 #2f3450, 4px 4px 0 rgba(11,11,18,.5);
-  border-radius: 50%;
+.combatant .token { width: 18rem; height: 18rem; font-size: 9rem; background: none; border: none; box-shadow: none; }
+/* grounded, softly-shadowed sprite that idle-bobs. Bob lives on the sprite (not
+   .token) so it composes with the token's one-shot lunge/cast transforms. */
+.combatant .token .art, .combatant .token .glyph {
+  filter: drop-shadow(0 7px 5px rgba(0,0,0,.55));
+  animation: idle-bob 2.6s ease-in-out infinite;
 }
-.combatant.foe { top: 9%; right: 10%; }
-.combatant.ally { bottom: 13%; left: 10%; }
-.combatant.foe .token { width: 7.8rem; height: 7.8rem; font-size: 4rem; }
+.combatant.foe .token .art, .combatant.foe .token .glyph { animation-duration: 2.95s; }
+@keyframes idle-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+/* soft contact shadow so the sprite sits on the scene's ground */
+.combatant .platform {
+  width: 13rem; height: 2.8rem; margin-top: -1.3rem;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.42) 0 45%, transparent 72%);
+  border-radius: 50%;
+  filter: blur(1px);
+}
+.combatant.foe { top: 14%; right: 11%; }
+.combatant.ally { bottom: 19%; left: 5%; }
+.combatant.foe .platform { width: 11rem; height: 2.4rem; }
+.combatant.foe .token { width: 14rem; height: 14rem; font-size: 7rem; }
 
 .combatant.attack-ally .token { animation: lunge-r 0.32s steps(4); }
 .combatant.attack-foe .token { animation: lunge-l 0.32s steps(4); }
 @keyframes lunge-r { 30% { transform: translate(2.6rem, -1.5rem); } }
 @keyframes lunge-l { 30% { transform: translate(-2.6rem, 1.5rem); } }
+/* special-move cast: no lunge, a quick charge-up pulse instead */
+.combatant.cast .token { animation: cast-pulse 0.42s ease-out; }
+@keyframes cast-pulse { 45% { transform: scale(1.1); filter: brightness(1.55); } }
+/* distinct attacker motions per move type */
+.combatant.act-stomp .token { animation: act-stomp 0.5s ease-in; }        /* ground/rock: rise then slam */
+@keyframes act-stomp { 30% { transform: translateY(-1.4rem) scale(1.05); } 55% { transform: translateY(0.5rem) scale(1.03); } 100% { transform: translateY(0); } }
+.combatant.act-throw .token { animation: act-throw 0.4s ease-out; }        /* orb/hurl: wind up + forward snap */
+@keyframes act-throw { 25% { transform: translateY(-0.4rem) scale(0.92); } 48% { transform: scale(1.12); filter: brightness(1.3); } 100% { transform: scale(1); } }
+.combatant.act-charge .token { animation: act-charge 0.5s ease-out; }      /* beam/bolt: charge glow + shudder */
+@keyframes act-charge { 20% { transform: scale(1.08) translateX(-0.3rem); filter: brightness(1.7); } 40% { transform: scale(1.1) translateX(0.2rem); filter: brightness(1.9); } 70% { transform: scale(1.04); } 100% { transform: scale(1); } }
 .combatant.hurt .token { animation: hurt-blink 0.36s steps(2) 2; }
 @keyframes hurt-blink { 50% { filter: brightness(3); opacity: 0.4; } }
-.combatant.fainted { animation: faint-drop 0.5s steps(6) forwards; }
-@keyframes faint-drop { to { transform: translateY(3.6rem); opacity: 0; } }
+.combatant.fainted { animation: faint-drop 0.6s ease-in forwards; }
+@keyframes faint-drop { to { transform: translateY(3.6rem) scale(0.9); opacity: 0; filter: grayscale(1) brightness(0.5); } }
 .combatant.enter .token { animation: enter-pop 0.35s steps(5); }
 @keyframes enter-pop { from { transform: scale(0.15); opacity: 0; } }
 
@@ -81,13 +131,13 @@
 
 /* HP plates — classic cream battle windows */
 .plate {
-  position: absolute; z-index: 10; min-width: 16rem; padding: 0.5rem 0.8rem;
+  position: absolute; z-index: 10; min-width: 14rem; max-width: 26%; padding: 0.45rem 0.7rem;
   background: var(--cream); color: var(--cream-ink);
   border: 3px solid var(--edge);
   box-shadow: inset 0 0 0 2px #c8c2a8, 5px 5px 0 rgba(11,11,18,.55);
 }
-.plate.foe { top: 6%; left: 4%; }
-.plate.ally { bottom: 14%; right: 4%; }
+.plate.foe { top: 6%; left: 3%; }
+.plate.ally { bottom: 3.5%; right: 3%; }
 .plate .nm-row { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
 .plate .nm-row b { font-family: var(--font-head); font-size: 0.62rem; }
 .plate .lv { color: #6b6550; font-size: 0.95rem; }
@@ -134,36 +184,34 @@
 .rotie .who { color: var(--magenta); font-family: var(--font-head); font-size: 0.5rem; margin-bottom: 0.3rem; }
 @keyframes rotie-in { from { transform: translateX(-18px); opacity: 0; } }
 
-/* command dock — classic battle menu strip */
-.dock {
-  background: var(--panel2);
-  border-top: 3px solid var(--edge);
-  box-shadow: 0 -3px 0 var(--line);
-  padding: 0.65rem 1rem 0.8rem; z-index: 15;
-  min-height: 11.4rem; display: flex; flex-direction: column; gap: 0.5rem;
-}
+/* ===== On-scene battle input — no separate panel. The message reads along the
+   bottom-left; the move cluster floats beside the player's Pokémon. ===== */
 .log-line {
-  min-height: 1.5em; font-size: 1.35rem;
-  background: var(--cream); color: var(--cream-ink);
-  border: 3px solid var(--edge); box-shadow: inset 0 0 0 2px #c8c2a8;
-  padding: 0.15em 0.6em;
+  position: absolute; z-index: 16; left: 2.5%; bottom: 3.5%; width: 26%;
+  min-height: 1.6em; font-size: 1.1rem; line-height: 1.3;
+  background: rgba(244,240,224,0.95); color: var(--cream-ink);
+  border: 3px solid var(--edge); box-shadow: inset 0 0 0 2px #c8c2a8, 3px 3px 0 rgba(11,11,18,.55);
+  padding: 0.35em 0.7em;
 }
-.dock-row { display: flex; gap: 0.6rem; flex: 1; min-height: 0; }
-.move-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.dock-row {
+  position: absolute; z-index: 16; left: 31%; bottom: 3.5%; width: 37%;
+  display: flex; flex-direction: column; gap: 0.4rem; pointer-events: auto;
+}
+.move-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
 .move-btn {
-  position: relative; text-align: left; padding: 0.45rem 0.65rem;
-  background: var(--panel3); color: var(--ink);
-  border: 3px solid var(--edge);
-  border-left: 8px solid var(--mv-color, var(--line));
-  box-shadow: 3px 3px 0 var(--edge), inset 0 0 0 2px rgba(255,255,255,.07);
+  position: relative; text-align: left; padding: 0.4rem 0.6rem;
+  background: rgba(26,22,42,0.88); color: var(--ink);
+  border: 2px solid var(--edge);
+  border-left: 7px solid var(--mv-color, var(--line));
+  box-shadow: 2px 2px 0 rgba(11,11,18,.6);
 }
-.move-btn:hover:not(:disabled) { filter: brightness(1.18); }
-.move-btn:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: none; }
-.move-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.move-btn:hover:not(:disabled) { filter: brightness(1.2); }
+.move-btn:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: none; }
+.move-btn:disabled { opacity: 0.42; cursor: not-allowed; }
 .move-btn .mv-top { display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; }
-.move-btn .mv-nm { font-family: var(--font-head); font-size: 0.62rem; }
-.move-btn .mv-meta { display: flex; gap: 0.7rem; font-size: 0.95rem; color: var(--dim); margin-top: 0.2rem; }
-.move-btn .mv-eff { position: absolute; right: 0.55rem; bottom: 0.3rem; font-family: var(--font-head); font-size: 0.45rem; }
+.move-btn .mv-nm { font-family: var(--font-head); font-size: 0.58rem; }
+.move-btn .mv-meta { display: flex; gap: 0.6rem; font-size: 0.92rem; color: var(--dim); margin-top: 0.15rem; }
+.move-btn .mv-eff { position: absolute; right: 0.5rem; bottom: 0.28rem; font-family: var(--font-head); font-size: 0.42rem; }
 .eff-4x { color: var(--gold); }
 .eff-2x { color: var(--ok); }
 .eff-half { color: #e6a23c; }
@@ -171,8 +219,22 @@
 .eff-none { color: var(--danger); text-decoration: line-through; }
 .eff-1x { color: var(--dim); }
 
-.side-actions { display: flex; flex-direction: column; gap: 0.5rem; width: 12rem; }
-.side-actions .row small { font-size: 0.95rem; }
+/* top-right control row: leave-battle + background switcher */
+.topctl { position: absolute; z-index: 17; top: 3%; right: 3%; display: flex; gap: 0.4rem; }
+.top-btn {
+  background: rgba(26,22,42,0.85); color: var(--ink);
+  border: 2px solid var(--edge); box-shadow: 2px 2px 0 rgba(11,11,18,.6);
+  font-size: 1.05rem; line-height: 1; padding: 0.35rem 0.55rem; cursor: pointer;
+}
+.top-btn:hover { filter: brightness(1.2); }
+.top-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+.top-btn.quit { border-color: var(--danger); color: var(--danger); font-family: var(--font-head); font-size: 0.5rem; }
+
+/* action row (timer / mega / switch / forfeit) sits under the move grid */
+.side-actions { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.side-actions .row { display: flex; align-items: center; gap: 0.4rem; margin-right: auto; }
+.side-actions .row small { font-size: 0.92rem; }
+.side-actions .btn.small { padding: 0.3rem 0.5rem; font-size: 0.92rem; }
 .mega-toggle {
   border: 3px solid var(--magenta); padding: 0.5rem;
   background: var(--panel3); color: var(--ink);

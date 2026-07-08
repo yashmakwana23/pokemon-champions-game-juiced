@@ -16,7 +16,7 @@ export function inspectorPanel(inst, { title = null } = {}) {
   return el('div.inspector.panel', {},
     title ? el('h3', {}, title) : null,
     el('div.head', {},
-      monToken(inst.species),
+      monToken(inst.species, { size: '6.5rem', animated: true }),
       el('div', {},
         el('div.row', {}, el('b', {}, inst.species), trial ? el('span.type-badge', { style: { background: 'var(--magenta)' } }, 'Trial') : null),
         el('div.row', { style: { marginTop: '0.25rem' } }, ...sp.types.map(typeBadge)),

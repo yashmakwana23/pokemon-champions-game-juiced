@@ -12,6 +12,18 @@ import {
 import { toast, topbar } from '../ui/widgets.js';
 import { sfx } from '../engine/audio.js';
 
+const missionIcon = (label = '') => {
+  const l = label.toLowerCase();
+  if (/mega/.test(l)) return '🧬';
+  if (/super-effective|effective/.test(l)) return '🎯';
+  if (/recruit|ranch/.test(l)) return '🤠';
+  if (/train/.test(l)) return '💪';
+  if (/buy|shop|item/.test(l)) return '🛒';
+  if (/ranked/.test(l)) return '🏆';
+  if (/win|battle|placement|emma/.test(l)) return '⚔️';
+  return '📋';
+};
+
 export const missionsScene = {
   async enter(root) {
     const S = state();
@@ -28,13 +40,18 @@ export const missionsScene = {
         el('div.mission-list', { style: { flex: '0 0 auto' } },
           ...S.missions.daily.tasks.map(t => {
             const done = t.progress >= t.need;
+            const pct = Math.min(100, (t.progress / t.need) * 100);
             return el('div.mission.panel' + (done && !t.claimed ? '.done' : ''), {},
+              el('div.m-icon', {}, missionIcon(t.label)),
               el('div.info', {},
                 el('b', {}, t.label),
-                el('div.dim', { style: { fontSize: '0.78rem' } }, `${Math.min(t.progress, t.need)}/${t.need}`),
+                el('div.prog', {},
+                  el('i', { style: { width: `${pct}%` } }),
+                  el('span.prog-txt', {}, `${Math.min(t.progress, t.need)} / ${t.need}`),
+                ),
               ),
-              el('span.reward', {}, `${fmt(t.vp)} VP`),
-              t.claimed ? el('span.owned.dim', {}, 'Claimed')
+              el('span.reward', {}, `◆ ${fmt(t.vp)}`),
+              t.claimed ? el('span.owned.dim', {}, '✔ Claimed')
                 : el('button.btn.small.gold', {
                     disabled: !done,
                     onclick: () => { if (claimDaily(t.id)) { sfx.buy(); toast(`+${t.vp} VP`); render(); } },
@@ -48,13 +65,20 @@ export const missionsScene = {
             const done = S.missions.starterDone.includes(m.id);
             const claimed = S.missions.starterClaimed.includes(m.id);
             return el('div.mission.panel' + (done && !claimed ? '.done' : ''), {},
-              el('div.info', {}, el('b', {}, m.label)),
-              el('span.reward', {}, `${fmt(m.vp)} VP`),
-              claimed ? el('span.owned.dim', {}, 'Claimed')
+              el('div.m-icon', {}, missionIcon(m.label)),
+              el('div.info', {},
+                el('b', {}, m.label),
+                el('div.prog', {},
+                  el('i', { style: { width: done ? '100%' : '0%' } }),
+                  el('span.prog-txt', {}, done ? 'Complete' : 'Incomplete'),
+                ),
+              ),
+              el('span.reward', {}, `◆ ${fmt(m.vp)}`),
+              claimed ? el('span.owned.dim', {}, '✔ Claimed')
                 : el('button.btn.small.gold', {
                     disabled: !done,
                     onclick: () => { if (claimStarter(m.id)) { sfx.buy(); toast(`+${m.vp} VP`); render(); } },
-                  }, done ? 'Claim' : 'Locked'),
+                  }, done ? 'Claim' : '🔒 Locked'),
             );
           }),
         ),
