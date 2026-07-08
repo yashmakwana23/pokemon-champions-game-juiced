@@ -268,6 +268,30 @@ export function projectile(from, to, { color = '#b26bff', dur = 0.34, size = 12,
   });
 }
 
+// Poké Ball tossed from → to on a high arc (spins), bursting on arrival.
+export function pokeballToss(from, to, dur = 0.5) {
+  const { w, h } = dims();
+  const sprite = fxImage('pokeball');
+  return new Promise(resolve => {
+    push(dur, (k) => {
+      const x = from.x + (to.x - from.x) * k;
+      const y = from.y + (to.y - from.y) * k - Math.sin(k * Math.PI) * 0.3; // arc
+      const px = x * w, py = y * h;
+      if (sprite && sprite.complete && sprite.naturalWidth) {
+        const s = 34;
+        ctx.save(); ctx.translate(px, py); ctx.rotate(k * 20);
+        ctx.drawImage(sprite, -s / 2, -s / 2, s, s); ctx.restore();
+      } else {
+        ctx.save();
+        ctx.fillStyle = '#ee4b4b'; ctx.beginPath(); ctx.arc(px, py, 11, Math.PI, 0); ctx.fill();
+        ctx.fillStyle = '#f4f0e0'; ctx.beginPath(); ctx.arc(px, py, 11, 0, Math.PI); ctx.fill();
+        ctx.strokeStyle = '#111'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px - 11, py); ctx.lineTo(px + 11, py); ctx.stroke();
+        ctx.restore();
+      }
+    }, resolve);
+  });
+}
+
 // Sustained additive beam from → to for `dur`. Resolves when it ends.
 export function beam(from, to, { color = '#EE8130', dur = 0.5, width = 12, core = '#fff' } = {}) {
   const { w, h } = dims();

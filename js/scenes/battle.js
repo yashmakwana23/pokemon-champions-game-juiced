@@ -16,13 +16,17 @@ import { scriptedTeam, generateOpponent } from '../systems/teamgen.js';
 import { CORDY_TEAM, NPCS, ROTIE_TIPS } from '../data/trainers.js';
 import { monToken, typeBadge, toast } from '../ui/widgets.js';
 import { showdownBg, BATTLE_SCENES } from '../data/sprites.js';
-import { attachFx, detachFx, burst, sparkleRise, screenShake, flashStage, ring, weatherStart, weatherStop } from '../engine/fx.js';
+import { attachFx, detachFx, burst, sparkleRise, screenShake, flashStage, ring, weatherStart, weatherStop, pokeballToss } from '../engine/fx.js';
 import { hitStop, setTimeScale } from '../engine/loop.js';
 import { tween, Easing } from '../engine/tween.js';
 import { playMoveAnim, archetypeOf, isMelee, tintOf } from '../data/anim.js';
 import { TYPE_COLORS } from '../data/types.js';
 import { sfx } from '../engine/audio.js';
 import { pick } from '../engine/rng.js';
+
+// Preload the trainer send-out sprite so it's cached before the battle intro.
+const TRAINER_SPRITE = 'https://play.pokemonshowdown.com/sprites/trainers/red.png';
+new Image().src = TRAINER_SPRITE;
 
 export const battleScene = {
   cleanup: null,
@@ -529,13 +533,36 @@ export const battleScene = {
 
     // Run detached: enter() must return promptly so the scene manager can
     // drop the transition veil; the battle paces itself via events.
+    // Player trainer send-out: the trainer strides in and hurls the Poké Ball,
+    // which bursts into the lead (classic battle open).
+    async function trainerSendOut(mon) {
+      const tr = el('img.battle-trainer', { src: TRAINER_SPRITE, alt: 'Trainer', draggable: 'false' });
+      stage.append(tr);
+      await sleep(520);                        // stride in (CSS) + settle
+      sfx.whoosh();
+      await pokeballToss({ x: 0.14, y: 0.62 }, posOf(mon), 0.5);
+      const p = posOf(mon);
+      burst(p.x, p.y, { color: '#ffffff', count: 20, speed: 210, size: 3 });
+      ring(p.x, p.y, { color: '#ffffff', maxR: 0.13, dur: 0.35, width: 4 });
+      tr.classList.add('leave');
+      setTimeout(() => tr.remove(), 450);
+    }
+
     (async function run() {
       logLine.textContent = `${opp.trainer.name} wants to battle!`;
       renderAll();
       await sleep(500);
-      for (const i of [1, 0]) {
-        const mon = B.active(i);
-        await B.E({ t: 'switch', mon, side: i, text: `${B.sides[i].trainer.name} sent out ${mon.name}!` });
+      // opponent sends out first…
+      {
+        const mon = B.active(1);
+        await B.E({ t: 'switch', mon, side: 1, text: `${B.sides[1].trainer.name} sent out ${mon.name}!` });
+      }
+      // …then your trainer throws the lead
+      {
+        const mon = B.active(0);
+        logLine.textContent = `Go! ${mon.name}!`;
+        await trainerSendOut(mon);
+        await B.E({ t: 'switch', mon, side: 0, text: `${B.sides[0].trainer.name} sent out ${mon.name}!` });
       }
       // entry abilities for leads
       for (const mon of [B.active(0), B.active(1)]) await switchInAbilities(B, mon);

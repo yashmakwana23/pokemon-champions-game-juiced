@@ -26,7 +26,7 @@ const orbImg = (type) => ORB_IMG[type] ?? 'energyball';
 // Warm the effect-image cache so the first attack isn't a blank frame.
 preloadFx(['flareball', 'fireball', 'waterwisp', 'electroball', 'leaf1', 'leaf2',
   'iceball', 'icicle', 'shadowball', 'blackwisp', 'poisonwisp', 'mistball',
-  'rock1', 'rock2', 'mudwisp', 'energyball']);
+  'rock1', 'rock2', 'mudwisp', 'energyball', 'pokeball']);
 
 // Element-flavoured impact — the key to variety: two Ghost moves and two Fire
 // moves each read as their element, not just a recoloured burst.
