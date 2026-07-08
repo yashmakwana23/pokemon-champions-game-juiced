@@ -268,8 +268,11 @@
 .vs-trainer { text-align: center; animation: fade-in 0.35s steps(3); }
 .vs-trainer .face { font-size: 3.4rem; filter: drop-shadow(3px 3px 0 rgba(0,0,0,.5)); }
 .vs-trainer h2 { font-size: 0.85rem; margin-top: 0.4rem; }
-.preview-cols { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; min-height: 0; }
-.preview-team { padding: 0.8rem; overflow-y: auto; }
+.preview-cols { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); gap: 1rem; min-height: 0; }
+/* each column is a flex-column: fixed heading + scrolling list, so the lists
+   scroll INSIDE the grid instead of overflowing over the "Battle!" button */
+.preview-cols > div { display: flex; flex-direction: column; min-height: 0; }
+.preview-team { padding: 0.8rem; overflow-y: auto; flex: 1; min-height: 0; }
 .preview-mon { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.5rem; border: 3px solid transparent; }
 .preview-mon .token { width: 3rem; height: 3rem; font-size: 1.5rem; }
 .preview-mon.pickable { cursor: pointer; }
