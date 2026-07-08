@@ -54,6 +54,11 @@ body {
     var(--bg0);
 }
 @media (max-aspect-ratio: 1/1) { #frame { width: 100vw; height: 100dvh; } }
+/* Mobile landscape (short viewport): fill the whole screen edge-to-edge — drop
+   the 16:9 letterbox so there are no black side bars. Desktop keeps 16:9. */
+@media (orientation: landscape) and (max-height: 480px) {
+  #frame { width: 100vw; height: 100dvh; min-height: 100dvh; }
+}
 
 /* CRT scanlines over everything */
 #frame::after {
@@ -265,5 +270,3 @@ button { font: inherit; color: inherit; cursor: pointer; border: none; backgroun
   box-shadow: 0 12px 28px rgba(47,143,230,.45);
 }
 .mg-btn:active { transform: translateY(1px); }
-.mg-ios { margin-top: .3rem; font-size: .98rem; font-weight: 500; line-height: 1.5; opacity: .9; max-width: 21rem; }
-.mg-ios b { color: #7fc4ff; font-weight: 700; }
