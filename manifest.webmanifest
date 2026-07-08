@@ -1,0 +1,14 @@
+{
+  "name": "Pokémon Champions",
+  "short_name": "Champions",
+  "description": "Pokémon Champions — browser recreation (fan-made study project).",
+  "start_url": ".",
+  "scope": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0f0f1b",
+  "theme_color": "#0f0f1b",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

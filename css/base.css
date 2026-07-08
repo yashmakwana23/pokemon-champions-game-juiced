@@ -28,6 +28,9 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
+/* Mobile: kill iOS double-tap-to-zoom + text auto-inflation + rubber-band. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { touch-action: manipulation; overscroll-behavior: none; }
 body {
   background: var(--bg0);
   color: var(--ink);
@@ -262,3 +265,5 @@ button { font: inherit; color: inherit; cursor: pointer; border: none; backgroun
   box-shadow: 0 12px 28px rgba(47,143,230,.45);
 }
 .mg-btn:active { transform: translateY(1px); }
+.mg-ios { margin-top: .3rem; font-size: .98rem; font-weight: 500; line-height: 1.5; opacity: .9; max-width: 21rem; }
+.mg-ios b { color: #7fc4ff; font-weight: 700; }
