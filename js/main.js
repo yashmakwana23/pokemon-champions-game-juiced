@@ -2,6 +2,7 @@
 import { startLoop } from './engine/loop.js';
 import { register, go } from './engine/scenes.js';
 import { load } from './state/store.js';
+import { initMobile } from './engine/mobile.js';
 
 import { titleScene } from './scenes/title.js';
 import { ftueScene } from './scenes/ftue.js';
@@ -30,3 +31,4 @@ register('results', resultsScene);
 startLoop();
 load();
 go('title');
+initMobile();
