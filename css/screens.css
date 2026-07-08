@@ -88,7 +88,7 @@
 /* featured cast standing on the plaza */
 .hero-cast {
   position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center;
-  gap: 0.4rem; padding-bottom: 3%;
+  gap: 1rem; padding-bottom: 9%;
 }
 .hero-cast .cast-mon .token, .hero-cast .trainer-av { background: none; border: none; box-shadow: none; }
 .hero-cast .cast-mon .art { filter: drop-shadow(0 9px 7px rgba(0,0,0,.6)); animation: idle-bob-hub 2.7s ease-in-out infinite; }
@@ -99,8 +99,8 @@
 @keyframes idle-bob-hub { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 /* lit stage platform the team stands on */
 .hero-platform {
-  position: absolute; left: 50%; bottom: 5%; transform: translateX(-50%); z-index: 0;
-  width: 64%; height: 13%;
+  position: absolute; left: 50%; bottom: 11%; transform: translateX(-50%); z-index: 0;
+  width: 74%; height: 15%;
   background: radial-gradient(ellipse at center, rgba(130,160,255,.4) 0 38%, rgba(60,80,150,.18) 64%, transparent 80%);
   border-radius: 50%; filter: blur(1px);
 }

@@ -88,7 +88,7 @@ export const hubScene = {
           node.classList.remove('poke'); void node.offsetWidth; node.classList.add('poke');
           if (i !== featured) feature(i);
         },
-      }, monToken(m.species, { size: cls === 'lead' ? '11rem' : '7rem', animated: true }));
+      }, monToken(m.species, { size: cls === 'lead' ? '13rem' : '9rem', animated: true }));
       return node;
     }
     function renderCast() {

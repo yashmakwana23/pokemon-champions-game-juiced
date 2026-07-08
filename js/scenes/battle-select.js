@@ -6,7 +6,7 @@ import { go } from '../engine/scenes.js';
 import { SPECIES } from '../data/species.js';
 import { MEGAS } from '../data/megas.js';
 import { CONFIG } from '../data/config.js';
-import { state, teamMons } from '../state/store.js';
+import { state, teamMons, save } from '../state/store.js';
 import { rankInfo } from '../state/progression.js';
 import { generateOpponent, scriptedTeam } from '../systems/teamgen.js';
 import { EMMA_TEAM, NPCS, DIALOGUE } from '../data/trainers.js';
@@ -68,7 +68,8 @@ async function matchmake(root, mode) {
   if (mode === 'tutorial') {
     return go('battle', { mode: 'tutorial' });
   } else if (mode === 'placement') {
-    await playDialogue(DIALOGUE.preEmma, NPCS);
+    // Emma's intro plays only the first time — not on every placement attempt.
+    if (!S.flags.emmaIntro) { S.flags.emmaIntro = true; save(); await playDialogue(DIALOGUE.preEmma, NPCS); }
     opp = { trainer: { name: 'Emma', title: 'Placement Rival' }, team: scriptedTeam(EMMA_TEAM.concat([
       { species: 'Azumarill' }, { species: 'Houndoom' }, { species: 'Snorlax' },
     ])), aiLevel: 1, hasOmniRing: false };
