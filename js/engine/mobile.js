@@ -22,11 +22,13 @@ export function initMobile() {
   gate.id = 'mobile-gate';
   gate.innerHTML =
     '<div class="mg-card">'
+    + '<div class="mg-brand">Pokémon</div>'
     + '<div class="mg-rot">⟳</div>'
-    + '<div class="mg-title">Rotate your device</div>'
-    + '<div class="mg-sub">Turn your phone sideways to play in landscape.</div>'
-    // full-screen button only where the browser can actually do it (Android / iPad)
-    + (fsSupported ? '<button class="mg-btn" type="button">▶ Play Full-Screen</button>' : '')
+    + '<div class="mg-title">Ready, Champion?</div>'
+    + '<div class="mg-sub">' + (fsSupported
+        ? 'Tap to start — we’ll flip to full-screen landscape.'
+        : 'Rotate your device to landscape to play.') + '</div>'
+    + (fsSupported ? '<button class="mg-btn" type="button">▶ Tap to Start</button>' : '')
     + '</div>';
   document.body.appendChild(gate);
 
@@ -41,8 +43,8 @@ export function initMobile() {
   }
 
   if (fsSupported) {
-    const btn = gate.querySelector('.mg-btn');
-    if (btn) btn.addEventListener('click', goImmersive);
+    // tap anywhere on the gate (not just the button) starts in full-screen
+    gate.addEventListener('click', goImmersive);
     // Rotated straight to landscape? A tap anywhere goes full-screen — once,
     // while not already full-screen, and only in landscape.
     document.addEventListener('pointerdown', () => {

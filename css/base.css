@@ -55,9 +55,13 @@ body {
 }
 @media (max-aspect-ratio: 1/1) { #frame { width: 100vw; height: 100dvh; } }
 /* Mobile landscape (short viewport): fill the whole screen edge-to-edge — drop
-   the 16:9 letterbox so there are no black side bars. Desktop keeps 16:9. */
-@media (orientation: landscape) and (max-height: 480px) {
+   the 16:9 letterbox so there are no black side bars. Desktop keeps 16:9.
+   Also shrink the whole rem-based UI (font-size drives every rem: sprites,
+   buttons, HUD, text) proportionally to the viewport height, so the full game
+   stays visible on small screens instead of clipping. */
+@media (orientation: landscape) and (max-height: 520px) {
   #frame { width: 100vw; height: 100dvh; min-height: 100dvh; }
+  :root { font-size: clamp(8px, 2.9vh, 14px); }
 }
 
 /* CRT scanlines over everything */
@@ -242,27 +246,38 @@ button { font: inherit; color: inherit; cursor: pointer; border: none; backgroun
 .blink { animation: blinkstep 0.9s steps(2) infinite; }
 @keyframes blinkstep { 50% { opacity: 0; } }
 
-/* ---------- mobile: rotate-to-landscape / full-screen gate ---------- */
-/* The game is 16:9 landscape; on a portrait touch screen we cover it with a
-   prompt instead of showing a squished layout. Cleared automatically (CSS
-   media query) once the device is landscape / full-screen. */
-#mobile-gate { display: none; }
+/* ---------- mobile: rotate-to-landscape / tap-to-start gate ---------- */
+/* The game is landscape; on a portrait touch screen we overlay a friendly
+   start prompt. It's TRANSLUCENT + blurred so the live animated title scene
+   still shows through behind it (not a blank "error" screen). Cleared
+   automatically (CSS media query) once the device is landscape / full-screen. */
+#mobile-gate { display: none; cursor: pointer; }
 @media (orientation: portrait) and (pointer: coarse) {
   #mobile-gate {
     display: flex; position: fixed; inset: 0; z-index: 10000;
     align-items: center; justify-content: center; text-align: center; padding: 2rem;
-    background: radial-gradient(ellipse at 50% 40%, #1b2444, #0a0d1c 78%);
+    background: linear-gradient(180deg, rgba(8,11,26,.42), rgba(8,11,26,.6));
+    -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+    animation: mg-fade .4s ease;
   }
 }
+@keyframes mg-fade { from { opacity: 0; } }
 #mobile-gate, #mobile-gate * {
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif; color: #eef2fb;
   -webkit-font-smoothing: antialiased; image-rendering: auto;
 }
-.mg-card { display: flex; flex-direction: column; align-items: center; gap: 1.1rem; max-width: 22rem; }
-.mg-rot { font-size: 4.6rem; line-height: 1; color: #7fc4ff; animation: mg-rot 2.4s ease-in-out infinite; }
+.mg-card {
+  display: flex; flex-direction: column; align-items: center; gap: 1rem; max-width: 23rem;
+  padding: 2rem 2.2rem; border-radius: 22px;
+  background: rgba(12,16,32,.55); border: 1px solid rgba(255,255,255,.12);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  box-shadow: 0 20px 50px rgba(0,0,0,.5);
+}
+.mg-rot { font-size: 4rem; line-height: 1; color: #7fc4ff; animation: mg-rot 2.4s ease-in-out infinite; filter: drop-shadow(0 3px 8px rgba(0,0,0,.5)); }
 @keyframes mg-rot { 0%, 50% { transform: rotate(0deg); } 72%, 100% { transform: rotate(-90deg); } }
-.mg-title { font-weight: 800; font-size: 1.5rem; letter-spacing: .02em; }
-.mg-sub { font-size: 1.02rem; font-weight: 500; line-height: 1.45; opacity: .82; }
+.mg-brand { font-weight: 700; font-size: .8rem; letter-spacing: .32em; color: var(--gold, #ffcd75); text-transform: uppercase; }
+.mg-title { font-weight: 800; font-size: 1.55rem; letter-spacing: .01em; text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+.mg-sub { font-size: 1.02rem; font-weight: 500; line-height: 1.45; opacity: .88; }
 .mg-btn {
   margin-top: .5rem; font-weight: 700; font-size: 1.05rem; cursor: pointer;
   padding: .9em 1.7em; border: none; border-radius: 14px;
