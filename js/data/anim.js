@@ -10,8 +10,23 @@
 import { sleep } from '../engine/dom.js';
 import { TYPE_COLORS } from './types.js';
 import { beam, projectile, bolt, burst, ring, cone, slash, fountain, screenShake,
-  flame, splash, sparks, leaves, shards, wisps, bubbles, sparkles, debris, energy } from '../engine/fx.js';
+  flame, splash, sparks, leaves, shards, wisps, bubbles, sparkles, debris, energy, preloadFx } from '../engine/fx.js';
 import { sfx } from '../engine/audio.js';
+
+// Textured effect sprite (Showdown /fx/) used for each element's thrown orb.
+const ORB_IMG = {
+  Fire: 'fireball', Water: 'waterwisp', Electric: 'electroball', Grass: 'energyball',
+  Ice: 'iceball', Ghost: 'shadowball', Poison: 'poisonwisp', Fairy: 'mistball',
+  Rock: 'rock1', Ground: 'mudwisp', Dragon: 'energyball', Dark: 'blackwisp',
+  Psychic: 'mistball', Steel: 'iceball', Normal: 'energyball', Flying: 'energyball',
+  Fighting: 'energyball', Bug: 'energyball',
+};
+const orbImg = (type) => ORB_IMG[type] ?? 'energyball';
+
+// Warm the effect-image cache so the first attack isn't a blank frame.
+preloadFx(['flareball', 'fireball', 'waterwisp', 'electroball', 'leaf1', 'leaf2',
+  'iceball', 'icicle', 'shadowball', 'blackwisp', 'poisonwisp', 'mistball',
+  'rock1', 'rock2', 'mudwisp', 'energyball']);
 
 // Element-flavoured impact — the key to variety: two Ghost moves and two Fire
 // moves each read as their element, not just a recoloured burst.
@@ -147,7 +162,7 @@ export async function playMoveAnim(move, geo, { color } = {}) {
     case 'orb': {
       sfx.whoosh();
       burst(from.x, from.y, { count: 6, color: c, speed: 90, size: 5, shape: 'glow', blend: 'add', life: 0.25 });
-      await projectile(from, to, { color: c, dur: 0.36, size: 13 });
+      await projectile(from, to, { color: c, dur: 0.36, size: 14, img: orbImg(move.type) });
       sfx.impactPop();
       elementImpact(move.type, to, { big: false });
       break;
@@ -157,7 +172,7 @@ export async function playMoveAnim(move, geo, { color } = {}) {
       sfx.beam();
       for (let i = 0; i < 4; i++) {
         const start = { x: to.x + (Math.random() - 0.5) * 0.4, y: -0.1 };
-        projectile(start, { x: to.x + (Math.random() - 0.5) * 0.12, y: to.y }, { color: c, dur: 0.4, size: 11 })
+        projectile(start, { x: to.x + (Math.random() - 0.5) * 0.12, y: to.y }, { color: c, dur: 0.4, size: 12, img: orbImg(move.type) })
           .then(() => elementImpact(move.type, to, { big: false }));
         await sleep(120);
       }
@@ -188,7 +203,7 @@ export async function playMoveAnim(move, geo, { color } = {}) {
     }
     case 'hex': {
       sfx.status();
-      await projectile(from, to, { color: c, dur: 0.4, size: 10 });
+      await projectile(from, to, { color: c, dur: 0.4, size: 11, img: orbImg(move.type) });
       elementImpact(move.type, to, { big: false });
       await sleep(200);
       break;

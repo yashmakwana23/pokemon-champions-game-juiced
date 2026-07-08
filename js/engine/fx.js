@@ -15,9 +15,21 @@ function newParticle() {
   return {
     active: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, maxLife: 0,
     size: 2, color: '#fff', grav: 0, drag: 0, shape: 'dot',
-    rot: 0, spin: 0, s0: 1, s1: 1, blend: 'normal', fadePow: 1,
+    rot: 0, spin: 0, s0: 1, s1: 1, blend: 'normal', fadePow: 1, img: null,
   };
 }
+
+// Textured effect sprites (Showdown /fx/). Drawn straight to canvas (the CDN
+// sends no CORS header, so no crossOrigin — this taints the canvas for pixel
+// reads but displays fine). Cached Image objects; preload the common set.
+const FX_BASE = 'https://play.pokemonshowdown.com/fx/';
+const imgCache = {};
+export function fxImage(name) {
+  if (!name) return null;
+  if (!imgCache[name]) { const im = new Image(); im.src = FX_BASE + name + '.png'; imgCache[name] = im; }
+  return imgCache[name];
+}
+export function preloadFx(names) { for (const n of names) fxImage(n); }
 
 let canvas = null, ctx = null, stopTick = null;
 let shake = { t: 0, mag: 0 };
@@ -64,9 +76,10 @@ function spawn(props) {
 export function burst(nx, ny, {
   count = 18, color = '#7df9ff', speed = 220, size = 4, grav = 300,
   shape = 'dot', spread = Math.PI * 2, dir = -Math.PI / 2, drag = 0,
-  blend = 'normal', spin = 0, life = null, upBias = 0.3, s0 = 1, s1 = 0.2, spawnR = 0,
+  blend = 'normal', spin = 0, life = null, upBias = 0.3, s0 = 1, s1 = 0.2, spawnR = 0, img = null,
 } = {}) {
   if (!canvas) return;
+  const sprite = img ? fxImage(img) : null;
   const { w, h } = dims();
   for (let i = 0; i < count; i++) {
     const a = dir + (Math.random() - 0.5) * spread;
@@ -76,7 +89,7 @@ export function burst(nx, ny, {
       x: nx * w + ox, y: ny * h + oy,
       vx: Math.cos(a) * v, vy: Math.sin(a) * v - speed * upBias,
       life: life ?? (0.4 + Math.random() * 0.5), size: size * (0.6 + Math.random() * 0.9),
-      color, grav, drag, shape, blend, s0, s1,
+      color, grav, drag, shape: sprite ? 'sprite' : shape, blend, s0, s1, img: sprite,
       rot: Math.random() * Math.PI, spin: spin * (Math.random() - 0.5) * 2,
     });
   }
@@ -100,63 +113,63 @@ export function smoke(nx, ny, { count = 8, color = 'rgba(70,60,55,0.55)', rise =
 // Each element reads distinctly so different moves stop looking the same.
 
 export function flame(nx, ny, { big = false } = {}) {                        // Fire
-  const n = big ? 26 : 16;
-  burst(nx, ny, { count: n, color: '#ffd21a', speed: 150, size: 8, grav: -140, shape: 'glow', blend: 'add', upBias: 0.5, drag: 1.2, life: 0.5, s0: 1.2, s1: 0.1 });
-  burst(nx, ny, { count: n, color: '#ff6a1a', speed: 120, size: 7, grav: -110, shape: 'glow', blend: 'add', upBias: 0.6, drag: 1.4, life: 0.6, s0: 1.4, s1: 0.1 });
-  burst(nx, ny, { count: 6, color: '#fff2a8', speed: 240, size: 3, shape: 'spark', blend: 'add', life: 0.4 }); // embers
+  burst(nx, ny, { img: 'flareball', count: big ? 15 : 10, color: '#ffae3a', speed: 150, size: 7, grav: -120, blend: 'add', drag: 1.3, life: 0.55, spin: 2, upBias: 0.5 });
+  burst(nx, ny, { count: big ? 16 : 10, color: '#ff6a1a', speed: 120, size: 6, grav: -110, shape: 'glow', blend: 'add', upBias: 0.6, drag: 1.4, life: 0.55, s0: 1.3, s1: 0.1 });
+  burst(nx, ny, { count: 8, color: '#fff2a8', speed: 250, size: 3, shape: 'spark', blend: 'add', life: 0.4 }); // embers
   smoke(nx, ny - 0.01, { count: big ? 7 : 4 });
 }
 
 export function splash(nx, ny, { big = false } = {}) {                       // Water
-  burst(nx, ny, { count: big ? 26 : 18, color: '#6fd0ff', speed: 300, size: 4, grav: 700, shape: 'circle', upBias: 0.8, life: 0.55 }); // droplets arc down
-  burst(nx, ny, { count: 10, color: '#eaffff', speed: 200, size: 5, grav: 500, shape: 'circle', upBias: 1.1, spread: 1.0, life: 0.5 }); // crown spray
+  burst(nx, ny, { img: 'waterwisp', count: big ? 15 : 10, color: '#6fd0ff', speed: 260, size: 6, grav: 480, blend: 'add', life: 0.5, spin: 2, upBias: 0.8 });
+  burst(nx, ny, { count: big ? 22 : 15, color: '#eaffff', speed: 300, size: 4, grav: 700, shape: 'circle', upBias: 0.9, life: 0.5 }); // droplets
   ring(nx, ny, { color: '#8fe0ff', maxR: big ? 0.18 : 0.13, dur: 0.4, width: 5 });
 }
 
 export function sparks(nx, ny, { big = false } = {}) {                       // Electric
-  burst(nx, ny, { count: big ? 30 : 20, color: '#fff27a', speed: 380, size: 4, shape: 'spark', blend: 'add', grav: 0, drag: 0.6, life: 0.3 });
-  burst(nx, ny, { count: 8, color: '#ffffff', speed: 120, size: 6, shape: 'glow', blend: 'add', life: 0.2 });
+  burst(nx, ny, { img: 'electroball', count: big ? 12 : 8, color: '#fff27a', speed: 210, size: 6, blend: 'add', drag: 0.8, life: 0.35, spin: 5 });
+  burst(nx, ny, { count: big ? 24 : 16, color: '#fff27a', speed: 380, size: 4, shape: 'spark', blend: 'add', drag: 0.6, life: 0.3 });
   ring(nx, ny, { color: '#fff27a', maxR: 0.12, dur: 0.24, width: 3 });
 }
 
 export function leaves(nx, ny, { big = false } = {}) {                       // Grass
-  burst(nx, ny, { count: big ? 22 : 14, color: '#7ee06a', speed: 240, size: 5, grav: 220, shape: 'dot', spin: 8, drag: 0.8, upBias: 0.5, life: 0.9 });
-  burst(nx, ny, { count: 8, color: '#c8f5a0', speed: 160, size: 4, grav: 140, shape: 'dot', spin: 10, life: 0.8 });
+  burst(nx, ny, { img: 'leaf1', count: big ? 12 : 8, color: '#7ee06a', speed: 230, size: 5, grav: 200, drag: 0.8, upBias: 0.5, life: 0.9, spin: 7 });
+  burst(nx, ny, { img: 'leaf2', count: big ? 10 : 6, color: '#c8f5a0', speed: 170, size: 4, grav: 150, life: 0.85, spin: 9 });
 }
 
 export function shards(nx, ny, { big = false } = {}) {                       // Ice
-  burst(nx, ny, { count: big ? 24 : 16, color: '#bfefff', speed: 320, size: 5, shape: 'spark', blend: 'add', grav: 120, life: 0.5 });
-  burst(nx, ny, { count: 10, color: '#ffffff', speed: 90, size: 3, shape: 'star', blend: 'add', life: 0.6, spin: 4 });
+  burst(nx, ny, { img: 'iceball', count: big ? 12 : 8, color: '#bfefff', speed: 300, size: 5, blend: 'add', grav: 120, life: 0.5, spin: 4 });
+  burst(nx, ny, { img: 'icicle', count: big ? 10 : 7, color: '#ffffff', speed: 340, size: 5, grav: 160, life: 0.45, spin: 3 });
   ring(nx, ny, { color: '#cdefff', maxR: 0.13, dur: 0.35, width: 4 });
 }
 
 export function wisps(nx, ny, { big = false } = {}) {                        // Ghost
-  burst(nx, ny, { count: big ? 22 : 15, color: '#9a6bff', speed: 120, size: 9, grav: -60, shape: 'glow', blend: 'add', drag: 0.7, life: 0.8, s0: 1.3, s1: 0.2, spin: 3 });
-  burst(nx, ny, { count: 8, color: '#4a2f7a', speed: 80, size: 8, grav: -40, shape: 'circle', life: 0.7, s0: 0.6, s1: 1.6 });
+  burst(nx, ny, { img: 'shadowball', count: big ? 12 : 8, color: '#9a6bff', speed: 120, size: 8, grav: -60, blend: 'add', drag: 0.7, life: 0.8, spin: 3 });
+  burst(nx, ny, { img: 'blackwisp', count: big ? 8 : 6, color: '#4a2f7a', speed: 90, size: 7, grav: -40, life: 0.7, spin: 4 });
 }
 
 export function bubbles(nx, ny, { big = false } = {}) {                      // Poison
-  burst(nx, ny, { count: big ? 22 : 15, color: '#c561e0', speed: 130, size: 6, grav: -70, shape: 'circle', drag: 0.9, life: 0.8, s0: 0.5, s1: 1.4 });
-  burst(nx, ny, { count: 12, color: '#8a2fb0', speed: 260, size: 4, grav: 500, shape: 'circle', upBias: 0.4, life: 0.6 }); // splatter
+  burst(nx, ny, { img: 'poisonwisp', count: big ? 14 : 9, color: '#c561e0', speed: 130, size: 6, grav: -70, blend: 'add', drag: 0.9, life: 0.8, spin: 2 });
+  burst(nx, ny, { count: big ? 14 : 10, color: '#8a2fb0', speed: 260, size: 4, grav: 500, shape: 'circle', upBias: 0.4, life: 0.6 }); // splatter
   smoke(nx, ny, { count: 3, color: 'rgba(120,40,150,0.4)', rise: 40 });
 }
 
 export function sparkles(nx, ny, { big = false } = {}) {                     // Fairy
-  burst(nx, ny, { count: big ? 26 : 18, color: '#ffb3e6', speed: 200, size: 4, shape: 'star', blend: 'add', grav: -20, drag: 0.6, life: 0.8, spin: 6 });
-  burst(nx, ny, { count: 10, color: '#ffffff', speed: 120, size: 5, shape: 'glow', blend: 'add', life: 0.5 });
+  burst(nx, ny, { img: 'mistball', count: big ? 12 : 8, color: '#ffb3e6', speed: 170, size: 6, blend: 'add', grav: -20, drag: 0.6, life: 0.8, spin: 3 });
+  burst(nx, ny, { count: big ? 18 : 12, color: '#ffd6f2', speed: 220, size: 4, shape: 'star', blend: 'add', grav: -20, life: 0.8, spin: 6 });
   ring(nx, ny, { color: '#ffc9ee', maxR: 0.14, dur: 0.4, width: 4 });
 }
 
 export function debris(nx, ny, { big = false } = {}) {                       // Rock / Ground
-  burst(nx, ny, { count: big ? 20 : 13, color: '#a07a4a', speed: 260, size: 6, grav: 900, shape: 'dot', upBias: 0.7, spin: 5, life: 0.7 });
+  burst(nx, ny, { img: 'rock1', count: big ? 11 : 7, color: '#a07a4a', speed: 260, size: 6, grav: 900, upBias: 0.7, spin: 5, life: 0.7 });
+  burst(nx, ny, { img: 'rock2', count: big ? 9 : 6, color: '#8a6a40', speed: 220, size: 5, grav: 850, upBias: 0.6, spin: 6, life: 0.7 });
   smoke(nx, ny, { count: big ? 8 : 5, color: 'rgba(120,100,80,0.5)', rise: 50, spreadPx: 90 });
   ring(nx, ny, { color: '#caa46a', maxR: big ? 0.17 : 0.12, dur: 0.4, width: 5 });
 }
 
 // generic energy burst (Dragon / Psychic / Dark / Steel / Normal / Flying / Bug)
 export function energy(nx, ny, { color = '#b26bff', big = false } = {}) {
-  burst(nx, ny, { count: big ? 24 : 16, color, speed: 300, size: 5, shape: 'glow', blend: 'add', drag: 0.7, life: 0.5, s0: 1.2, s1: 0.1 });
-  burst(nx, ny, { count: 10, color, speed: 340, size: 3, shape: 'spark', blend: 'add', life: 0.35 });
+  burst(nx, ny, { img: 'energyball', count: big ? 12 : 8, color, speed: 260, size: 6, blend: 'add', drag: 0.7, life: 0.5, spin: 3 });
+  burst(nx, ny, { count: big ? 14 : 10, color, speed: 340, size: 3, shape: 'spark', blend: 'add', life: 0.35 });
   ring(nx, ny, { color, maxR: big ? 0.16 : 0.12, dur: 0.36, width: 5 });
 }
 
@@ -226,8 +239,10 @@ export function ring(nx, ny, { color = '#ffffff', maxR = 0.22, dur = 0.4, width 
 // ---- travelling / sustained effects (return Promises) ---------------------
 
 // Glowing orb travelling from → to, leaving a trail. Resolves on arrival.
-export function projectile(from, to, { color = '#b26bff', dur = 0.34, size = 12, trail = true } = {}) {
+// With `img`, the orb is a textured effect sprite (fireball / shadowball / …).
+export function projectile(from, to, { color = '#b26bff', dur = 0.34, size = 12, trail = true, img = null } = {}) {
   const { w, h } = dims();
+  const sprite = img ? fxImage(img) : null;
   return new Promise(resolve => {
     push(dur, (k) => {
       const e = ease(k);
@@ -239,7 +254,16 @@ export function projectile(from, to, { color = '#b26bff', dur = 0.34, size = 12,
           vx: 0, vy: 0, life: 0.35, size: size * 0.45, color, grav: 0, shape: 'glow', blend: 'add', s1: 0,
         });
       }
-      glowBlob(x * w, y * h, size, color);
+      if (sprite && sprite.complete && sprite.naturalWidth) {
+        const s = size * 5.5;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.translate(x * w, y * h); ctx.rotate(k * 9);
+        ctx.drawImage(sprite, -s / 2, -s / 2, s, s);
+        ctx.restore();
+      } else {
+        glowBlob(x * w, y * h, size, color);
+      }
     }, resolve);
   });
 }
@@ -388,7 +412,17 @@ function draw(dt) {
 
 function drawParticle(p, scl) {
   const size = Math.max(1, p.size * scl);
-  if (p.shape === 'star') {
+  if (p.shape === 'sprite') {
+    if (p.img && p.img.complete && p.img.naturalWidth) {
+      const s = size * 6.5;
+      ctx.save();
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.drawImage(p.img, -s / 2, -s / 2, s, s);
+      ctx.restore();
+    } else { // image not ready yet → soft glow stand-in
+      glowBlob(p.x, p.y, size * 2, p.color);
+    }
+  } else if (p.shape === 'star') {
     ctx.fillStyle = p.color;
     ctx.font = `${size * 3.4}px serif`;
     ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
